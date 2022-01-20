@@ -1,0 +1,446 @@
+package main
+
+import (
+	"crypto/sha256"
+	"encoding/json"
+	"fmt"
+	"html/template"
+	"io/ioutil"
+	"log"
+	"net/http"
+	"strconv"
+	"time"
+
+	"github.com/gorilla/mux"
+)
+
+type Post struct {
+	Username string `json:"username, omitempty"`
+	Password string `json:"password, omitempty"`
+	Content  string `json:"content, omitempty"`
+}
+
+//* middlewares
+//functions in golang can take functions as parameters
+//the middleware function is executed before the handler function, basically it's a wrapper
+//this function returns a handlerFunc which is a method of http function that can be used to serve the request
+//the return is a handlerFunc which take as arguments the response and the request, check if the jwt exists
+//and, if so, it executes the actual handler (which is given as argument and is called "next")
+func JWTAuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		//check if the cookie "JWT" exists
+		_, err := r.Cookie("JWT")
+		if err != nil {
+			//if err is not nil it means that the cookie was not found so we return a 401 unauthorized
+			returnError(w, http.StatusUnauthorized, "missing 'JWT' cookie")
+			return
+		}
+
+		next(w, r)
+	})
+}
+
+//* generic's handlers
+
+//return the login html page
+func loginPage(w http.ResponseWriter, r *http.Request) {
+	//read the file
+	page, err := ioutil.ReadFile("pages/login.html")
+	if err != nil {
+		//check for possible errors, if so return 503
+		returnError(w, http.StatusServiceUnavailable, "error, reason: "+err.Error())
+		return
+	}
+
+	//set the content type and write the file
+	w.Header().Set("Content-Type", "text/html")
+	w.Write(page)
+}
+
+func loginHandler(w http.ResponseWriter, r *http.Request) {
+	var post Post
+	//decode the json given in the post body (r.Body) and parse it into the post struct (as pointer)
+	err := json.NewDecoder(r.Body).Decode(&post)
+	if err != nil {
+		//check for errors, if so return 400
+		returnError(w, http.StatusBadRequest, "Invalid json, "+err.Error())
+		return
+	}
+
+	//hash the password with sha256
+	hashedPassword := sha256.Sum256([]byte(post.Password))
+	user, err := QueryUserByUsername(post.Username)
+	if err != nil {
+		//internal server error
+		returnError(w, http.StatusInternalServerError, "Internal server error: "+err.Error())
+		return
+	}
+	if user.Password == fmt.Sprintf("%x", hashedPassword) {
+		//create a jwt with the info and the expiration time
+		token, err := NewJWT(user.Username, user.ID, time.Now().Add(time.Hour*time.Duration(2)).Unix())
+		if err != nil {
+			returnError(w, http.StatusInternalServerError, "Internal server error: "+err.Error())
+			return
+		}
+
+		//set the jwt even as a cookie
+		cookie := &http.Cookie{
+			Name:     "JWT",
+			Value:    token,
+			Path:     "/",
+			Expires:  time.Now().Add(time.Hour * time.Duration(2)),
+			HttpOnly: true,
+		}
+
+		http.SetCookie(w, cookie)
+		//and as a header
+		w.Header().Add("Authorization", "Bearer "+token)
+		returnSuccess(w, http.StatusOK, "Successfully logged in")
+		return
+	}
+	//return unauthorized
+	returnError(w, http.StatusUnauthorized, "Invalid credentials")
+}
+
+func registerPage(w http.ResponseWriter, r *http.Request) {
+	//read the file
+	page, err := ioutil.ReadFile("pages/register.html")
+	if err != nil {
+		//check for possible errors, if so return 503
+		returnError(w, http.StatusServiceUnavailable, "error, reason: "+err.Error())
+		return
+	}
+
+	//set the content type and write the file
+	w.Header().Set("Content-Type", "text/html")
+	w.Write(page)
+}
+
+func registerHandler(w http.ResponseWriter, r *http.Request) {
+	//read from the post body the json data and fill the post struct
+	var post Post
+	err := json.NewDecoder(r.Body).Decode(&post)
+	if err != nil {
+		//check for errors, if so return 400
+		returnError(w, http.StatusBadRequest, "Invalid json, "+err.Error())
+		return
+	}
+
+	//hash the password with sha256
+	hashedPassword := fmt.Sprintf("%x", sha256.Sum256([]byte(post.Password)))
+	err = AddUser(post.Username, hashedPassword, "")
+	if err != nil {
+		returnError(w, http.StatusInternalServerError, "Internal server error: "+err.Error())
+		return
+	}
+
+	returnSuccess(w, http.StatusCreated, "successfully registered, you can now login")
+}
+
+func homePage(w http.ResponseWriter, r *http.Request) {
+	jwtContent := checkJWT(w, r)
+
+	data := struct {
+		Username string
+		ID       int
+	}{
+		Username: jwtContent.Username,
+		ID:       jwtContent.UserID,
+	}
+
+	tmpl, err := template.ParseFiles("pages/home.html")
+	if err != nil {
+		returnError(w, http.StatusServiceUnavailable, "Internal server error: "+err.Error())
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/html")
+	tmpl.Execute(w, data)
+}
+
+//* user's handlers
+
+func getUserHandler(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.Atoi(mux.Vars(r)["id"])
+	if err != nil {
+		returnError(w, http.StatusBadRequest, "Invalid user id")
+		return
+	}
+
+	user, err := QueryUserByID(id)
+	if err != nil {
+		returnError(w, http.StatusNotFound, "User not found")
+		return
+	}
+
+	userJSON, _ := json.Marshal(user)
+	returnSuccessJson(w, http.StatusOK, "Successfully retrieved user", "data", userJSON)
+}
+
+func searchUsersHandler(w http.ResponseWriter, r *http.Request) {
+	search := mux.Vars(r)["query"]
+
+	users, err := QueryUsersBySubstring(search)
+	if err != nil {
+		returnError(w, http.StatusNotFound, "no users found")
+		return
+	}
+
+	usersJSON, _ := json.Marshal(users)
+	returnSuccessJson(w, http.StatusOK, "Successfully retrieved users", "users", usersJSON)
+}
+
+func followUserHandler(w http.ResponseWriter, r *http.Request) {
+	jwtContent := checkJWT(w, r)
+
+	id, err := strconv.Atoi(mux.Vars(r)["id"])
+	if err != nil {
+		returnError(w, http.StatusBadRequest, "Invalid user id")
+		return
+	}
+
+	user, err := QueryUserByID(jwtContent.UserID)
+	if err != nil {
+		returnError(w, http.StatusInternalServerError, "Internal server error: "+err.Error())
+		return
+	}
+
+	err = user.Follow(id)
+	if err != nil {
+		returnError(w, http.StatusInternalServerError, "Internal server error: "+err.Error())
+		return
+	}
+
+	returnSuccess(w, http.StatusOK, "Successfully followed user")
+}
+
+func unfollowUserHandler(w http.ResponseWriter, r *http.Request) {
+	jwtContent := checkJWT(w, r)
+
+	id, err := strconv.Atoi(mux.Vars(r)["id"])
+	if err != nil {
+		returnError(w, http.StatusBadRequest, "Invalid user id")
+		return
+	}
+
+	user, err := QueryUserByID(jwtContent.UserID)
+	if err != nil {
+		returnError(w, http.StatusInternalServerError, "Internal server error: "+err.Error())
+		return
+	}
+
+	err = user.Unfollow(id)
+	if err != nil {
+		returnError(w, http.StatusInternalServerError, "Internal server error: "+err.Error())
+		return
+	}
+
+	returnSuccess(w, http.StatusOK, "Successfully unfollowed user")
+}
+
+//* blob's handlers
+func getBlobHandler(w http.ResponseWriter, r *http.Request) {
+	id, err := strconv.Atoi(mux.Vars(r)["id"])
+	if err != nil {
+		returnError(w, http.StatusBadRequest, "Invalid blob id")
+		return
+	}
+
+	blob, err := QueryBlobByID(id)
+	if err != nil {
+		returnError(w, http.StatusNotFound, "Blob not found")
+		return
+	}
+
+	blobJSON, _ := json.Marshal(blob)
+	returnSuccessJson(w, http.StatusOK, "Successfully retrieved blob", "blob", blobJSON)
+}
+
+func addBlobHandler(w http.ResponseWriter, r *http.Request) {
+	jwtContent := checkJWT(w, r)
+
+	var post Post
+	err := json.NewDecoder(r.Body).Decode(&post)
+	if err != nil {
+		returnError(w, http.StatusBadRequest, "Invalid request body: "+err.Error())
+		return
+	}
+
+	err = AddBlob(jwtContent.UserID, post.Content)
+	if err != nil {
+		returnError(w, http.StatusInternalServerError, "Internal server error: "+err.Error())
+		return
+	}
+
+	returnSuccess(w, http.StatusOK, "Successfully added blob")
+}
+
+func modifyBlobHandler(w http.ResponseWriter, r *http.Request) {
+	jwtContent := checkJWT(w, r)
+
+	var post Post
+	err := json.NewDecoder(r.Body).Decode(&post)
+	if err != nil {
+		returnError(w, http.StatusBadRequest, "Invalid request body: "+err.Error())
+		return
+	}
+
+	id, err := strconv.Atoi(mux.Vars(r)["id"])
+	if err != nil {
+		returnError(w, http.StatusBadRequest, "Invalid blob id")
+		return
+	}
+
+	blob, err := QueryBlobByID(id)
+	if err != nil {
+		returnError(w, http.StatusNotFound, "Blob not found")
+		return
+	}
+
+	if jwtContent.UserID != blob.UserID {
+		returnError(w, http.StatusUnauthorized, "You are not authorized to modify this blob, only the owner can modify it")
+		return
+	}
+
+	err = blob.Modify(post.Content)
+	if err != nil {
+		returnError(w, http.StatusInternalServerError, "Internal server error: "+err.Error())
+		return
+	}
+
+	returnSuccess(w, http.StatusOK, "Successfully modified blob")
+}
+
+func deleteBlobHandler(w http.ResponseWriter, r *http.Request) {
+	jwtContent := checkJWT(w, r)
+
+	id, err := strconv.Atoi(mux.Vars(r)["id"])
+	if err != nil {
+		returnError(w, http.StatusBadRequest, "Invalid blob id")
+		return
+	}
+
+	blob, err := QueryBlobByID(id)
+	if err != nil {
+		returnError(w, http.StatusNotFound, "Blob not found")
+		return
+	}
+
+	if jwtContent.UserID != blob.UserID {
+		returnError(w, http.StatusUnauthorized, "You are not authorized to delete this blob, only the owner can delete it")
+		return
+	}
+
+	err = blob.Delete()
+	if err != nil {
+		returnError(w, http.StatusInternalServerError, "Internal server error: "+err.Error())
+		return
+	}
+
+	returnSuccess(w, http.StatusOK, "Successfully deleted blob")
+}
+
+func addLikeBlobHandler(w http.ResponseWriter, r *http.Request) {
+	jwtContent := checkJWT(w, r)
+
+	id, err := strconv.Atoi(mux.Vars(r)["id"])
+	if err != nil {
+		returnError(w, http.StatusBadRequest, "Invalid blob id")
+		return
+	}
+
+	blob, err := QueryBlobByID(id)
+	if err != nil {
+		returnError(w, http.StatusNotFound, "Blob not found")
+		return
+	}
+
+	err = blob.Like(jwtContent.UserID)
+	if err != nil {
+		returnError(w, http.StatusInternalServerError, "Internal server error: "+err.Error())
+		return
+	}
+
+	returnSuccess(w, http.StatusOK, "Successfully liked blob")
+}
+
+func removeLikeBlobHandler(w http.ResponseWriter, r *http.Request) {
+	jwtContent := checkJWT(w, r)
+
+	id, err := strconv.Atoi(mux.Vars(r)["id"])
+	if err != nil {
+		returnError(w, http.StatusBadRequest, "Invalid blob id")
+		return
+	}
+
+	blob, err := QueryBlobByID(id)
+	if err != nil {
+		returnError(w, http.StatusNotFound, "Blob not found")
+		return
+	}
+
+	err = blob.Unlike(jwtContent.UserID)
+	if err != nil {
+		returnError(w, http.StatusInternalServerError, "Internal server error: "+err.Error())
+		return
+	}
+
+	returnSuccess(w, http.StatusOK, "Successfully unliked blob")
+}
+
+func toggleLikeBlobHandler(w http.ResponseWriter, r *http.Request) {
+	jwtContent := checkJWT(w, r)
+
+	id, err := strconv.Atoi(mux.Vars(r)["id"])
+	if err != nil {
+		returnError(w, http.StatusBadRequest, "Invalid blob id")
+		return
+	}
+
+	blob, err := QueryBlobByID(id)
+	if err != nil {
+		returnError(w, http.StatusNotFound, "Blob not found")
+		return
+	}
+
+	err = blob.ToggleLike(jwtContent.UserID)
+	if err != nil {
+		returnError(w, http.StatusInternalServerError, "Internal server error: "+err.Error())
+		return
+	}
+
+	returnSuccess(w, http.StatusOK, "Successfully toggled like blob")
+}
+
+func main() {
+	r := mux.NewRouter()
+
+	//*generics
+	//pages
+	r.HandleFunc(login.String(), loginPage).Methods("GET")
+	r.HandleFunc(register.String(), registerPage).Methods("GET")
+	//this just means that the homepage is available only if the client has a jwt cookie
+	r.Handle(home.String(), JWTAuthMiddleware(homePage)).Methods("GET")
+
+	//api
+	r.HandleFunc(login.String(), loginHandler).Methods("POST")
+	r.HandleFunc(register.String(), registerHandler).Methods("POST")
+
+	//*users
+	r.HandleFunc(getUser.String(), getUserHandler).Methods("GET")
+	r.HandleFunc(searchUsers.String(), searchUsersHandler).Methods("GET")
+	r.HandleFunc(followUser.String(), JWTAuthMiddleware(followUserHandler)).Methods("GET")
+	r.HandleFunc(unfollowUser.String(), JWTAuthMiddleware(unfollowUserHandler)).Methods("GET")
+
+	//*blobs
+	r.HandleFunc(getBlob.String(), getBlobHandler).Methods("GET")
+	r.HandleFunc(addBlob.String(), JWTAuthMiddleware(addBlobHandler)).Methods("POST")
+	r.HandleFunc(modifyBlob.String(), JWTAuthMiddleware(modifyBlobHandler)).Methods("POST")
+	r.HandleFunc(deleteBlob.String(), JWTAuthMiddleware(deleteBlobHandler)).Methods("GET")
+	r.HandleFunc(addLikeBlob.String(), JWTAuthMiddleware(addLikeBlobHandler)).Methods("GET")
+	r.HandleFunc(removeLikeBlob.String(), JWTAuthMiddleware(removeLikeBlobHandler)).Methods("GET")
+	r.HandleFunc(toggleLikeBlob.String(), JWTAuthMiddleware(toggleLikeBlobHandler)).Methods("GET")
+
+	//start the server
+	log.Fatal(http.ListenAndServe(":8080", r))
+}

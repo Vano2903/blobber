@@ -14,7 +14,7 @@ func (u User) AddBlob(content string) error {
 		return err
 	}
 
-	_, err = db.Query("INSERT INTO Blobs (ID_user, content) VALUES (?, ?)", u.ID, content)
+	_, err = db.Query("INSERT INTO blobs (ID_user, content) VALUES (?, ?)", u.ID, content)
 	return err
 }
 
@@ -68,7 +68,7 @@ func (u User) Unfollow(id int) error {
 		return err
 	}
 
-	_, err = db.Query("DELETE FROM Blobs WHERE ID_user_follower = ? AND ID_user_followed = ?", u.ID, id)
+	_, err = db.Query("DELETE FROM follows WHERE ID_user_follower = ? AND ID_user_followed = ?", u.ID, id)
 	return err
 }
 
@@ -142,7 +142,7 @@ func QueryUsersBySubstring(usernameSubstring string) ([]User, error) {
 		return []User{}, err
 	}
 
-	rows, err := db.Query("SELECT id, username, password, description FROM users WHERE username LIKE %?%", usernameSubstring)
+	rows, err := db.Query("SELECT id, username, password, description FROM users WHERE username LIKE CONCAT('%', ?, '%')", usernameSubstring)
 	if err != nil {
 		return []User{}, err
 	}
@@ -154,6 +154,7 @@ func QueryUsersBySubstring(usernameSubstring string) ([]User, error) {
 		if err != nil {
 			return []User{}, err
 		}
+		user.Password = "-hidden-"
 		users = append(users, user)
 	}
 

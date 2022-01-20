@@ -18,7 +18,7 @@ const (
 	modifyUser Endpoint = "/users/{id}/modify"
 	deleteUser Endpoint = "/users/{id}/delete"
 
-	//Blobs
+	//blobs
 	addBlob    Endpoint = "/blob/add"
 	getBlob    Endpoint = "/blob/{id}"
 	modifyBlob Endpoint = "/blob/{id}/modify"

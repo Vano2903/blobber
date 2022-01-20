@@ -1,6 +1,9 @@
 package main
 
-import "time"
+import (
+	"fmt"
+	"time"
+)
 
 type Blob struct {
 	ID        int       `json:"id"`
@@ -50,7 +53,7 @@ func (b Blob) Delete() error {
 		return err
 	}
 
-	_, err = db.Query("DELETE FROM Blobs WHERE ID = ?", b.ID)
+	_, err = db.Query("DELETE FROM blobs WHERE ID = ?", b.ID)
 	return err
 }
 
@@ -60,7 +63,7 @@ func (b *Blob) Modify(content string) error {
 		return err
 	}
 
-	_, err = db.Query("UPDATE Blobs SET content = ? WHERE ID = ?", content, b.ID)
+	_, err = db.Query("UPDATE blobs SET content = ? WHERE ID = ?", content, b.ID)
 	return err
 }
 
@@ -70,7 +73,7 @@ func AddBlob(userID int, content string) error {
 		return err
 	}
 
-	_, err = db.Query("INSERT INTO Blobs (ID_user, content) VALUES (?, ?)", userID, content)
+	_, err = db.Query("INSERT INTO blobs (ID_user, content) VALUES (?, ?)", userID, content)
 	return err
 }
 
@@ -80,7 +83,10 @@ func QueryBlobByID(id int) (Blob, error) {
 		return Blob{}, err
 	}
 
-	var Blob Blob
-	db.QueryRow("SELECT * FROM Blobs WHERE ID = ?", id).Scan(&Blob.ID, &Blob.UserID, &Blob.Content, &Blob.AddedDate)
-	return Blob, nil
+	var blob Blob
+	db.QueryRow("SELECT * FROM blobs WHERE ID = ?", id).Scan(&blob.ID, &blob.UserID, &blob.Content, &blob.AddedDate)
+	if blob.ID == 0 {
+		return Blob{}, fmt.Errorf("Blob with id %d not found", id)
+	}
+	return blob, nil
 }

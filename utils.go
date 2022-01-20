@@ -9,7 +9,7 @@ import (
 )
 
 func connectToDB() (*sql.DB, error) {
-	db, err := sql.Open("mysql", "root:root@tcp(192.168.1.9:33061)/Blobber") //127.0.0.1
+	db, err := sql.Open("mysql", "root:root@tcp(127.0.0.1:33061)/blobber") //192.168.1.9
 	if err != nil {
 		return nil, err
 	}

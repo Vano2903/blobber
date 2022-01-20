@@ -95,7 +95,7 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 		http.SetCookie(w, cookie)
 		//and as a header
 		w.Header().Add("Authorization", "Bearer "+token)
-		returnSuccess(w, http.StatusOK, "Successfully logged in")
+		returnSuccessJson(w, http.StatusOK, "Successfully logged in", "id", []byte(fmt.Sprintf("%x", user.ID)))
 		return
 	}
 	//return unauthorized
@@ -173,6 +173,7 @@ func getUserHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	user.Password = "-hidden-"
 	userJSON, _ := json.Marshal(user)
 	returnSuccessJson(w, http.StatusOK, "Successfully retrieved user", "data", userJSON)
 }

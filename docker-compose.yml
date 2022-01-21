@@ -12,25 +12,25 @@ services:
         depends_on:
             - db
         environment:
-            MYSQL_DATABASE: "${MYSQL_DATABASE}"
-            MYSQL_USER: "${MYSQL_USER}"
-            MYSQL_PASSWORD: "${MYSQL_PASSWORD}"
+            SECRET: "${SECRET}"
         ports:
-            - "${PORT}:8080"
+            - "${PORT}"
+        expose:
+            - "${PORT}"
         # networks:
         #     - elastic
     db:
       image: mysql:5.7
       restart: always
       environment:
-        MYSQL_DATABASE: Blobber
-        MYSQL_USER: vano
-        MYSQL_PASSWORD: vano
+        MYSQL_DATABASE: ${MYSQL_DATABASE}
+        MYSQL_USER: ${MYSQL_USER}
+        MYSQL_PASSWORD: ${MYSQL_PASSWORD}
         MYSQL_ROOT_PASSWORD: root
       ports:
         - 33061:3306
-      expose:
-        - 3306
+      # expose:
+      #   - 3306
       volumes:
         - my-db:/var/lib/mysql
 volumes:

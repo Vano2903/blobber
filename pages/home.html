@@ -181,13 +181,14 @@
 
         async function post() {
             let content = document.getElementById("blobContent").value;
+            console.log(content);
             let response = await fetch('/blob/add', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    content: content,
+                    content: content
                 })
             });
             let resp = await response.json();

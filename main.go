@@ -33,7 +33,6 @@ func JWTAuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
 		if err != nil {
 			//if err is not nil it means that the cookie was not found so we return a 401 unauthorized
 			returnError(w, http.StatusUnauthorized, "missing 'JWT' cookie")
-			return func(w, r) {}
 		}
 
 		next(w, r)

@@ -9,7 +9,7 @@ import (
 )
 
 func connectToDB() (*sql.DB, error) {
-	db, err := sql.Open("mysql", "root:root@tcp(127.0.0.1:33061)/blobber?parseTime=true&charset=utf8") //
+	db, err := sql.Open("mysql", "root:root@tcp(127.0.0.1:33061)/Blobber?parseTime=true&charset=utf8") //
 	if err != nil {
 		return nil, err
 	}

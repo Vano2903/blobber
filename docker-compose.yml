@@ -14,7 +14,7 @@ services:
         environment:
             SECRET: "${SECRET}"
         ports:
-            - "${PORT}"
+            - "${PORT}:8080"
         expose:
             - "${PORT}"
         # networks:

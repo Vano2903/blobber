@@ -12,4 +12,4 @@ RUN go build -o ${APP_NAME}
 
 CMD ./${APP_NAME}
 
-EXPOSE ${PORT}
+EXPOSE 8080

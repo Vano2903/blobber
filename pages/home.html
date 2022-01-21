@@ -40,8 +40,10 @@
                     Modifica Bio
                 </button>
                 <div id="caption" style="display:none;" class="form-group">
-                    <label for="blobContent">Messaggio del blob</label>
-                    <textarea class="form-control" id="blobContent" rows="3"></textarea>
+                    <label for="bioContent">Messaggio del blob</label>
+                    <textarea class="form-control" id="bioContent" rows="3">
+
+                    </textarea>
                     <br>
                     <button type="button" class="btn btn-primary" onclick="changeCaption()">Applica</button>
                 </div>
@@ -188,7 +190,7 @@
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    content: content
+                    content: content,
                 })
             });
             let resp = await response.json();
@@ -219,7 +221,7 @@
         }
 
         async function changeCaption() {
-            let caption = document.getElementById("caption").value;
+            let caption = document.getElementById("bioContent").value;
             let response = await fetch('/users/modify', {
                 method: 'POST',
                 headers: {

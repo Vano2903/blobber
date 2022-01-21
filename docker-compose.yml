@@ -12,20 +12,20 @@ services:
         depends_on:
             - db
         environment:
-            SECRET: "${SECRET}"
+            SECRET: ?M/Xnn8#H).W96T[
         ports:
-            - "${PORT}:8080"
+            - "8080:8080"
         expose:
-            - "${PORT}"
+            - 8080
         # networks:
         #     - elastic
     db:
       image: mysql:5.7
       restart: always
       environment:
-        MYSQL_DATABASE: ${MYSQL_DATABASE}
-        MYSQL_USER: ${MYSQL_USER}
-        MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+        MYSQL_DATABASE: Blobber
+        MYSQL_USER: bano
+        MYSQL_PASSWORD: bano
         MYSQL_ROOT_PASSWORD: root
       ports:
         - 33061:3306

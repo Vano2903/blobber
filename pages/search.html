@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <title>get exam, idk man</title>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
+        integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+</head>
+
+<body>
+    <center>
+        <br>
+        <h1>CERCA UTENTE</h1>
+        <hr>
+
+        <div class="col-6">
+            <div class="form-group">
+                <label for="user">Username</label>
+                <input type="text" class="form-control" id="user" aria-describedby="emailHelp">
+                <br>
+                <button type="button" class="btn btn-primary" onclick="search()">Cerca</button>
+            </div>
+        </div>
+        <hr>
+        <div id="card-container">
+
+        </div>
+    </center>
+
+
+    <!-- Optional JavaScript -->
+    <!-- jQuery first, then Popper.js, then Bootstrap JS -->
+    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"
+        integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo"
+        crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"
+        integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1"
+        crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"
+        integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM"
+        crossorigin="anonymous"></script>
+
+    <script>
+        async function search() {
+            var user = document.getElementById("user").value;
+            console.log(user);
+            const r = await fetch('/users/search/' + user);
+            const resp = await r.json();
+            const cardContainer = document.getElementById('card-container');
+            console.log(resp);
+            if (resp.error) {
+                alert(resp.msg);
+            }
+            else {
+                let users = resp.users;
+                if (resp.users !== null) {
+                    users.forEach(user => {
+                        const card = document.createElement('div');
+                        card.className = 'card';
+                        card.style.width = '24rem';
+                        card.style.padding = '10px';
+                        card.style.margin = '10px';
+
+                        const cardBody = document.createElement('div');
+                        cardBody.className = 'card-body';
+
+                        const cardTitle = document.createElement('a');
+                        cardTitle.style.fontWeight = 'bold';
+                        cardTitle.style.marginTop = "1em";
+                        cardTitle.style.marginBottom = "1em";
+                        cardTitle.style.fontSize = "1.17em";
+                        cardTitle.className = 'card-title';
+                        cardTitle.innerText = user.username;
+                        cardTitle.href = '/users/page/' + user.user_id;
+
+                        const cardText = document.createElement('p');
+                        cardText.className = 'card-text';
+                        cardText.innerText = user.content != null ? user.content : "";
+
+                        let hr = document.createElement('hr');
+                        let followButton = document.createElement('button');
+                        followButton.id = "followButton" + user.id;
+                        if (user.follows) {
+                            followButton.className = 'btn btn-danger';
+                            followButton.innerText = 'Un-Follow';
+                            followButton.setAttribute("onclick", "removeFollow(" + user.id + "," + user.followers + "," + user.following + ")");
+                        } else {
+                            followButton.className = 'btn btn-primary';
+                            followButton.innerText = 'Follow';
+                            followButton.setAttribute("onclick", "addFollow(" + user.id + "," + user.followers + "," + user.following + ")")
+                        }
+
+                        let infoCounter = document.createElement('p');
+                        infoCounter.id = "infoCounter" + user.id;
+                        infoCounter.innerText = user.followers + " followers, " + user.following + " following";
+
+                        cardBody.appendChild(cardTitle);
+                        cardBody.appendChild(cardText);
+                        cardBody.appendChild(hr);
+                        cardBody.appendChild(infoCounter);
+                        cardBody.appendChild(hr);
+
+                        cardBody.appendChild(followButton);
+                        card.appendChild(cardBody);
+                        cardContainer.appendChild(card);
+                    });
+                } else {
+                    document.getElementById("card-container").innerHTML = "<h1>Nessun utente trovato</h1>";
+                }
+            }
+        }
+
+        async function addFollow(id, followers, followings) {
+            const r = await fetch(`/users/${id}/follow`);
+            const resp = await r.json();
+            if (resp.error) {
+                alert(resp.msg);
+            }
+            else {
+                document.getElementById("followButton" + id).className = 'btn btn-danger';
+                document.getElementById("followButton" + id).innerText = 'Un-Follow';
+                document.getElementById("followButton" + id).setAttribute("onclick", "removeFollow(" + id + "," + (followers + 1) + "," + followings + ")");
+                document.getElementById("infoCounter" + id).innerText = followers + 1 + " followers, " + followings + " following";
+            }
+        }
+
+        async function removeFollow(id, followers, followings) {
+            const r = await fetch(`/users/${id}/unfollow`);
+            const resp = await r.json();
+            if (resp.error) {
+                alert(resp.msg);
+            }
+            else {
+                document.getElementById("followButton" + id).className = 'btn btn-primary';
+                document.getElementById("followButton" + id).innerText = 'Follow';
+                document.getElementById("followButton" + id).setAttribute("onclick", "addFollow(" + id + "," + (followers - 1) + "," + followings + ")")
+                document.getElementById("infoCounter" + id).innerText = followers - 1 + " followers, " + followings + " following";
+            }
+        }
+    </script>
+</body>
+
+</html>

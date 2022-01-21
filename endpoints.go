@@ -4,19 +4,22 @@ type Endpoint string
 
 const (
 	//generics
-	login    Endpoint = "/login"
-	register Endpoint = "/register"
-	home     Endpoint = "/"
-	overview Endpoint = "/overview"
+	login      Endpoint = "/login"
+	register   Endpoint = "/register"
+	home       Endpoint = "/"
+	overview   Endpoint = "/overview"
+	searchPage Endpoint = "/search"
 
 	//users
-	getUser      Endpoint = "/users/{id}"
+	getUser Endpoint = "/users/{id}"
+	//TODO
+	getUserPage Endpoint = "/users/Page/{id}"
+
 	followUser   Endpoint = "/users/{id}/follow"
 	unfollowUser Endpoint = "/users/{id}/unfollow"
 	searchUsers  Endpoint = "/users/search/{query}"
-	//TODO
-	modifyUser Endpoint = "/users/{id}/modify"
-	deleteUser Endpoint = "/users/{id}/delete"
+	modifyUser   Endpoint = "/users/modify"
+	deleteUser   Endpoint = "/users/delete"
 
 	//blobs
 	addBlob    Endpoint = "/blob/add"

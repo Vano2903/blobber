@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="it">
+
+<head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-1BmE4kWBq78iYhFldvKuhfTAU6auU8tT94WrHftjDbrCEXSU1oBoqyl2QvZ6jIW3" crossorigin="anonymous">
+
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.7.2/css/all.css"
+        integrity="sha384-fnmOCqbTlWIlj8LyTjo7mOUStjsKC4pOpQbqyi7RrhN7udi9RwhKkMHpvLbHG9Sr" crossorigin="anonymous" />
+
+    <title>blobber - register</title>
+    <style>
+        .login {
+            min-height: 100vh;
+        }
+
+        .bg-image {
+            background-image: url("/images/jwt");
+            background-size: cover;
+            background-position: center;
+        }
+
+        .register-img {
+            transform: scaleX(-1);
+        }
+
+        .login-heading {
+            font-weight: 300;
+        }
+
+        .btn-login {
+            font-size: 0.9rem;
+            letter-spacing: 0.05rem;
+            padding: 0.75rem 1rem;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container-fluid ps-md-0">
+        <div class="row g-0">
+            <div class="col-md-8 col-lg-6">
+                <div class="login d-flex align-items-center py-5">
+                    <div class="container">
+                        <div class="row">
+                            <div class="col-md-9 col-lg-8 mx-auto">
+                                <h3 class="login-heading mb-4">Sign Up</h3>
+
+                                <!-- Sign In Form -->
+                                <form>
+                                    <div class="form-floating mb-3">
+                                        <input type="text" class="form-control" id="username" placeholder="John">
+                                        <label for="username">Username</label>
+                                    </div>
+
+                                    <div class="form-floating mb-3">
+                                        <input type="password" class="form-control" id="password"
+                                            placeholder="Password">
+                                        <label for="password">Password</label>
+                                    </div>
+
+                                    <div class="form-floating mb-3">
+                                        <input type="password" class="form-control" id="confirmPassword"
+                                            placeholder="Confirm Password">
+                                        <label for="confirmPassword">Conferma Password</label>
+                                    </div>
+
+                                    <p style="display:none;" id="error" class="alert alert-danger" role="alert"></p>
+                                    <p style="display:none;" id="success" class="alert alert-success" role="alert"></p>
+
+                                    <button class="col-12 btn btn-lg btn-primary btn-login text-uppercase fw-bold mb-2"
+                                        type="button" onclick="register()">Registrati</button>
+                                </form>
+
+                                <br>Hai giá un account
+                                <a href="/login">Login</a>
+
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="d-none d-md-flex col-md-4 col-lg-6 bg-image"></div>
+
+        </div>
+        <!-- Optional JavaScript -->
+        <!-- jQuery first, then Popper.js, then Bootstrap JS -->
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"
+            integrity="sha384-ka7Sk0Gln4gmtz2MlQnikT1wXgYsOg+OMhuP+IlRH9sENBO0LRn5q+8nbTov4+1p"
+            crossorigin="anonymous"></script>
+        <script>
+            "use strict";
+
+            let error = document.getElementById("error")
+            let success = document.getElementById("success")
+
+            function checkConfirmPassword() {
+                var password = document.getElementById("password").value;
+                var confirmPassword = document.getElementById("confirmPassword").value;
+                if (password != confirmPassword) {
+                    document.getElementById("error").style.display = "block";
+                    document.getElementById("error").innerHTML = "Passwords do not match";
+                    return false;
+                }
+                document.getElementById("error").style.display = "none";
+                document.getElementById("error").innerHTML = "";
+                return true;
+            }
+
+            function checkPassword() {
+                var password = document.getElementById("password").value;
+                if (password.length < 4) {
+                    document.getElementById("error").style.display = "block";
+                    document.getElementById("error").innerHTML = "Password can't be empty";
+                    return false;
+                }
+                document.getElementById("error").style.display = "none";
+                document.getElementById("error").innerHTML = "";
+                return true;
+            }
+
+            //check if the username is less then 4
+            //check if the username contains / or \
+            function checkUsername() {
+                var username = document.getElementById("name").value;
+                if (username.length < 4) {
+                    document.getElementById("error").style.display = "block";
+                    document.getElementById("error").innerHTML = "Username can't be empty";
+                    return false;
+                }
+                document.getElementById("error").style.display = "none";
+                document.getElementById("error").innerHTML = "";
+                return true;
+            }
+
+            async function register() {
+                var username = document.getElementById("username").value;
+                // if (!checkUsername()) return;
+
+                var password = document.getElementById("password").value;
+                // if (!checkConfirmPassword()) return;
+
+                var response = await fetch("/register", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({ username: username, password: password })
+                });
+
+                var data = await response.json();
+                console.log(data)
+
+                if (data.code >= 200 && data.code < 300) {
+                    error.style.display = "none";
+                    success.style.display = "block";
+                    success.innerHTML = "Registrato correttamente, puoi fare <a href='/login'>login</a>";
+                } else {
+                    success.style.display = "none";
+                    error.style.display = "block";
+                    error.innerHTML = data.msg;
+                }
+            }
+        </script>
+</body>
+
+</html>

@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <title>blobber</title>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
+        integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+</head>
+
+<body onload="init()">
+    <center>
+        <br>
+        <div class="row">
+            <div class="col">
+                <button type="button" class="btn btn-warning" onclick="logout()">
+                    <lord-icon src="https://cdn.lordicon.com/lywgqtim.json" trigger="loop-on-hover"
+                        colors="primary:#121331,secondary:#000000" style="width:30px;height:30px">
+                    </lord-icon>
+                    Logout
+                </button>
+            </div>
+            <div class="col">
+                <button type="button" class="btn btn-info" onclick="window.location.href='/search'">
+                    <lord-icon src="https://cdn.lordicon.com/msoeawqm.json" trigger="loop-on-hover"
+                        colors="primary:#ffffff,secondary:#ffffff" style="width:30px;height:30px">
+                    </lord-icon>
+                    Cerca
+                </button>
+            </div>
+            <div class="col">
+                <button type="button" class="btn btn-primary" onclick="toggleCaptionText()">
+                    <lord-icon src="https://cdn.lordicon.com/wloilxuq.json" trigger="loop-on-hover"
+                        colors="primary:#ffffff,secondary:#ffffff" style="width:30px;height:30px">
+                    </lord-icon>
+                    Modifica Bio
+                </button>
+                <div id="caption" style="display:none;" class="form-group">
+                    <label for="blobContent">Messaggio del blob</label>
+                    <textarea class="form-control" id="blobContent" rows="3"></textarea>
+                    <br>
+                    <button type="button" class="btn btn-primary" onclick="changeCaption()">Applica</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- <hr class="col-6"> -->
+        <h1 id="teacherInfo">Benvenuto <a href="/users/page/{{.ID}}">{{.Username}}</a></h1>
+        <hr class="col-6">
+        <br>
+
+        <h3>Posta un blob</h3>
+        <!-- <br> -->
+        <form class="col-6">
+            <div class="form-group">
+                <label for="blobContent">Messaggio del blob</label>
+                <textarea class="form-control" id="blobContent" rows="3"></textarea>
+            </div>
+            <!-- <br> -->
+            <button type="button" class="btn btn-primary" onclick="post()">Posta</button>
+        </form>
+
+        <br>
+        <div class="col-6">
+            <h3>Feeds</h3>
+            <hr>
+            <div id="feed">
+            </div>
+        </div>
+    </center>
+
+    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"
+        integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo"
+        crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"
+        integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1"
+        crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"
+        integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM"
+        crossorigin="anonymous"></script>
+
+    <script src="https://cdn.lordicon.com/libs/mssddfmo/lord-icon-2.1.0.js"></script>
+
+    <script>
+        let id = parseInt(localStorage.getItem("id"));
+
+        async function init() {
+            let response = await fetch('/overview');
+            let resp = await response.json();
+            console.log(resp);
+            if (resp.error) {
+                alert(resp.msg);
+            }
+            else {
+                let overview = resp.overview;
+                if (resp.overview !== null) {
+                    let cardContainer = document.getElementById("feed");
+                    overview.forEach(single => {
+                        const card = document.createElement('div');
+                        card.className = 'card';
+                        card.style.width = '24rem';
+                        card.style.padding = '10px';
+                        card.style.margin = '10px';
+
+                        const cardBody = document.createElement('div');
+                        cardBody.className = 'card-body';
+
+                        const cardTitle = document.createElement('a');
+                        cardTitle.style.fontWeight = 'bold';
+                        cardTitle.style.marginTop = "1em";
+                        cardTitle.style.marginBottom = "1em";
+                        cardTitle.style.fontSize = "1.17em";
+                        cardTitle.className = 'card-title';
+                        cardTitle.innerText = single.username;
+                        cardTitle.href = '/users/page/' + single.user_id;
+
+                        const cardText = document.createElement('p');
+                        cardText.className = 'card-text';
+                        cardText.innerText = single.content;
+
+                        let hr = document.createElement('hr');
+                        let likeButton = document.createElement('button');
+                        likeButton.id = "likeButton" + single.id;
+                        if (single.liked) {
+                            likeButton.className = 'btn btn-danger';
+                            likeButton.innerText = 'Un-Like';
+                            likeButton.setAttribute("onclick", "toggleLike(" + single.id + ")")
+                        }
+                        else {
+                            likeButton.className = 'btn btn-primary';
+                            likeButton.innerText = 'Like';
+                            likeButton.setAttribute("onclick", "toggleLike(" + single.id + ")")
+                        }
+
+                        let likeCounter = document.createElement('p');
+                        likeCounter.id = "likeCounter" + single.id;
+                        likeCounter.innerText = single.likes + " likes";
+
+                        cardBody.appendChild(cardTitle);
+                        cardBody.appendChild(cardText);
+                        cardBody.appendChild(hr);
+                        cardBody.appendChild(likeCounter);
+                        cardBody.appendChild(hr);
+
+                        cardBody.appendChild(likeButton);
+                        card.appendChild(cardBody);
+                        cardContainer.appendChild(card);
+                    });
+                } else {
+                    document.getElementById("feed").innerHTML = "<h1>WOW CHE VUOTO, VAI A SEGUIRE QUALCUNO</h1>";
+                }
+            }
+        }
+
+        async function toggleLike(id) {
+            let response = await fetch(`/blob/${id}/like/toggle`);
+            let resp = await response.json();
+            console.log(resp);
+            if (resp.error) {
+                alert(resp.msg);
+            }
+            else {
+                let likeButton = document.getElementById("likeButton" + id);
+                let likeCounter = document.getElementById("likeCounter" + id);
+                if (likeButton.innerHTML == "Un-Like") {
+                    likeButton.innerHTML = "Like";
+                    likeButton.className = 'btn btn-primary';
+                    likeCounter.innerText = parseInt(likeCounter.innerText) - 1 + " likes";
+                }
+                else {
+                    likeButton.innerHTML = "Un-Like";
+                    likeButton.className = 'btn btn-danger';
+                    likeCounter.innerText = parseInt(likeCounter.innerText) + 1 + " likes";
+                }
+            }
+        }
+
+        async function post() {
+            let content = document.getElementById("blobContent").value;
+            let response = await fetch('/blob/add', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    content: content,
+                })
+            });
+            let resp = await response.json();
+            console.log(resp);
+            if (resp.error) {
+                alert(resp.msg);
+            }
+            else {
+                alert("Blob postato con successo!");
+                document.getElementById("blobContent").value = "";
+                // window.location.reload();
+            }
+        }
+
+        async function logout() {
+            document.cookie = "JWT=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+            window.location.href = "/login";
+        }
+
+        function toggleCaptionText() {
+            let caption = document.getElementById("caption");
+            if (caption.style.display == "none") {
+                caption.style.display = "block";
+            }
+            else {
+                caption.style.display = "none";
+            }
+        }
+
+        async function changeCaption() {
+            let caption = document.getElementById("caption").value;
+            let response = await fetch('/users/modify', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    caption: caption,
+                })
+            });
+            let resp = await response.json();
+            console.log(resp);
+            if (resp.error) {
+                alert(resp.msg);
+            }
+            else {
+                alert("Bio cambiato con successo!");
+                document.getElementById("caption").value = "";
+                toggleCaptionText();
+                // window.location.reload();
+            }
+        } 
+    </script>
+</body>
+
+</html>

@@ -19,7 +19,7 @@ func NewCustomClaims(username string, userID int, expiration int64) CustomClaims
 		UserID:   userID,
 		StandardClaims: jwt.StandardClaims{
 			ExpiresAt: expiration,
-			Issuer:    "vano-jwt-teachers",
+			Issuer:    "blobber",
 		},
 	}
 	return token

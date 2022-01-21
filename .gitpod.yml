@@ -1,0 +1,12 @@
+tasks:
+  - init: |
+      docker-compose pull
+  - command: |
+      sudo docker-compose up --build
+ports:
+  - port: 8080
+    onOpen: open-browser
+
+# vscode:
+#   extensions:
+#     - ms-azuretools.vscode-docker

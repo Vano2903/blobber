@@ -41,7 +41,6 @@ func JWTAuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
 }
 
 //* generic's handlers
-
 //return the login html page
 func loginPage(w http.ResponseWriter, r *http.Request) {
 	//read the file
@@ -69,7 +68,7 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 
 	//hash the password with sha256
 	hashedPassword := sha256.Sum256([]byte(post.Password))
-	user, err := QueryUserByUsername(post.Username)
+	user, err := QueryUserByUsername(post.Username, 0)
 	if err != nil {
 		//internal server error
 		returnError(w, http.StatusInternalServerError, "Internal server error: "+err.Error())
@@ -92,10 +91,13 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 			HttpOnly: true,
 		}
 
+		user.Password = "-hidden-"
+		userJson, _ := json.Marshal(user)
+
 		http.SetCookie(w, cookie)
 		//and as a header
 		w.Header().Add("Authorization", "Bearer "+token)
-		returnSuccessJson(w, http.StatusOK, "Successfully logged in", "id", []byte(fmt.Sprintf("%x", user.ID)))
+		returnSuccessJson(w, http.StatusOK, "Successfully logged in", "user", userJson)
 		return
 	}
 	//return unauthorized
@@ -158,16 +160,86 @@ func homePage(w http.ResponseWriter, r *http.Request) {
 	tmpl.Execute(w, data)
 }
 
+func searchPageHandler(w http.ResponseWriter, r *http.Request) {
+	page, err := ioutil.ReadFile("pages/search.html")
+	if err != nil {
+		//check for possible errors, if so return 503
+		returnError(w, http.StatusServiceUnavailable, "error, reason: "+err.Error())
+		return
+	}
+
+	//set the content type and write the file
+	w.Header().Set("Content-Type", "text/html")
+	w.Write(page)
+}
+
 //* user's handlers
+func modifyUserHandler(w http.ResponseWriter, r *http.Request) {
+	jwtContent := checkJWT(w, r)
+
+	var post Post
+	err := json.NewDecoder(r.Body).Decode(&post)
+	if err != nil {
+		returnError(w, http.StatusBadRequest, "Invalid json, "+err.Error())
+		return
+	}
+
+	user, err := QueryUserByID(jwtContent.UserID, 0)
+	if err != nil {
+		returnError(w, http.StatusInternalServerError, "Internal server error: "+err.Error())
+		return
+	}
+	user.ModifyDescription(post.Content)
+	if err != nil {
+		returnError(w, http.StatusInternalServerError, "Internal server error: "+err.Error())
+		return
+	}
+
+	returnSuccess(w, http.StatusOK, "content modified successfully")
+}
+
+func deleteUserHandler(w http.ResponseWriter, r *http.Request) {
+	jwtContent := checkJWT(w, r)
+
+	user, err := QueryUserByID(jwtContent.UserID, 0)
+	user.Delete()
+	if err != nil {
+		returnError(w, http.StatusInternalServerError, "Internal server error: "+err.Error())
+		return
+	}
+
+	returnSuccess(w, http.StatusOK, "user deleted successfully")
+}
+
+func overviewHandler(w http.ResponseWriter, r *http.Request) {
+	jwtContent := checkJWT(w, r)
+
+	user, err := QueryUserByID(jwtContent.UserID, 0)
+	if err != nil {
+		returnError(w, http.StatusInternalServerError, "Internal server error: "+err.Error())
+		return
+	}
+
+	overview, err := user.GetOverview()
+	if err != nil {
+		returnError(w, http.StatusInternalServerError, "Internal server error: "+err.Error())
+		return
+	}
+
+	overviewJson, _ := json.Marshal(overview)
+	returnSuccessJson(w, http.StatusOK, "Successfully retrieved overview", "overview", overviewJson)
+}
 
 func getUserHandler(w http.ResponseWriter, r *http.Request) {
+	jwtContent := checkJWT(w, r)
+
 	id, err := strconv.Atoi(mux.Vars(r)["id"])
 	if err != nil {
 		returnError(w, http.StatusBadRequest, "Invalid user id")
 		return
 	}
 
-	user, err := QueryUserByID(id)
+	user, err := QueryUserByID(id, jwtContent.UserID)
 	if err != nil {
 		returnError(w, http.StatusNotFound, "User not found")
 		return
@@ -179,9 +251,11 @@ func getUserHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func searchUsersHandler(w http.ResponseWriter, r *http.Request) {
+	jwtContent := checkJWT(w, r)
+
 	search := mux.Vars(r)["query"]
 
-	users, err := QueryUsersBySubstring(search)
+	users, err := QueryUsersBySubstring(search, jwtContent.UserID)
 	if err != nil {
 		returnError(w, http.StatusNotFound, "no users found")
 		return
@@ -200,7 +274,7 @@ func followUserHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := QueryUserByID(jwtContent.UserID)
+	user, err := QueryUserByID(jwtContent.UserID, 0)
 	if err != nil {
 		returnError(w, http.StatusInternalServerError, "Internal server error: "+err.Error())
 		return
@@ -224,7 +298,7 @@ func unfollowUserHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := QueryUserByID(jwtContent.UserID)
+	user, err := QueryUserByID(jwtContent.UserID, 0)
 	if err != nil {
 		returnError(w, http.StatusInternalServerError, "Internal server error: "+err.Error())
 		return
@@ -247,7 +321,7 @@ func getBlobHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	blob, err := QueryBlobByID(id)
+	blob, err := QueryBlobByID(id, 0)
 	if err != nil {
 		returnError(w, http.StatusNotFound, "Blob not found")
 		return
@@ -292,7 +366,7 @@ func modifyBlobHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	blob, err := QueryBlobByID(id)
+	blob, err := QueryBlobByID(id, jwtContent.UserID)
 	if err != nil {
 		returnError(w, http.StatusNotFound, "Blob not found")
 		return
@@ -321,7 +395,7 @@ func deleteBlobHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	blob, err := QueryBlobByID(id)
+	blob, err := QueryBlobByID(id, jwtContent.UserID)
 	if err != nil {
 		returnError(w, http.StatusNotFound, "Blob not found")
 		return
@@ -350,7 +424,7 @@ func addLikeBlobHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	blob, err := QueryBlobByID(id)
+	blob, err := QueryBlobByID(id, jwtContent.UserID)
 	if err != nil {
 		returnError(w, http.StatusNotFound, "Blob not found")
 		return
@@ -374,7 +448,7 @@ func removeLikeBlobHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	blob, err := QueryBlobByID(id)
+	blob, err := QueryBlobByID(id, jwtContent.UserID)
 	if err != nil {
 		returnError(w, http.StatusNotFound, "Blob not found")
 		return
@@ -398,7 +472,7 @@ func toggleLikeBlobHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	blob, err := QueryBlobByID(id)
+	blob, err := QueryBlobByID(id, jwtContent.UserID)
 	if err != nil {
 		returnError(w, http.StatusNotFound, "Blob not found")
 		return
@@ -417,23 +491,41 @@ func main() {
 	r := mux.NewRouter()
 
 	//*generics
+	r.HandleFunc("/images/blob", func(w http.ResponseWriter, r *http.Request) {
+		fileBytes, err := ioutil.ReadFile("blob.png")
+		if err != nil {
+			panic(err)
+		}
+		w.WriteHeader(http.StatusOK)
+		w.Header().Set("Content-Type", "application/octet-stream")
+		w.Write(fileBytes)
+	}).Methods("GET")
 	//pages
 	r.HandleFunc(login.String(), loginPage).Methods("GET")
 	r.HandleFunc(register.String(), registerPage).Methods("GET")
 	//this just means that the homepage is available only if the client has a jwt cookie
-	r.Handle(home.String(), JWTAuthMiddleware(homePage)).Methods("GET")
+	r.HandleFunc(home.String(), JWTAuthMiddleware(homePage)).Methods("GET")
+	r.HandleFunc(searchPage.String(), JWTAuthMiddleware(searchPageHandler)).Methods("GET")
+
+	r.HandleFunc(getUserPage.String(), func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusNotImplemented)
+		w.Write([]byte("questa pagina non é ancora stata implementata, torna più tardi"))
+	}).Methods("GET") //JWTAuthMiddleware(getUserPageHandler)
 
 	//api
 	r.HandleFunc(login.String(), loginHandler).Methods("POST")
 	r.HandleFunc(register.String(), registerHandler).Methods("POST")
+	r.HandleFunc(overview.String(), JWTAuthMiddleware(overviewHandler)).Methods("GET")
 
-	//*users
-	r.HandleFunc(getUser.String(), getUserHandler).Methods("GET")
-	r.HandleFunc(searchUsers.String(), searchUsersHandler).Methods("GET")
+	//*users (all api)
+	r.HandleFunc(getUser.String(), JWTAuthMiddleware(getUserHandler)).Methods("GET")
+	r.HandleFunc(searchUsers.String(), JWTAuthMiddleware(searchUsersHandler)).Methods("GET")
 	r.HandleFunc(followUser.String(), JWTAuthMiddleware(followUserHandler)).Methods("GET")
 	r.HandleFunc(unfollowUser.String(), JWTAuthMiddleware(unfollowUserHandler)).Methods("GET")
+	r.HandleFunc(modifyUser.String(), JWTAuthMiddleware(modifyUserHandler)).Methods("POST")
+	r.HandleFunc(deleteUser.String(), JWTAuthMiddleware(deleteUserHandler)).Methods("GET")
 
-	//*blobs
+	//*blobs (all pi)
 	r.HandleFunc(getBlob.String(), getBlobHandler).Methods("GET")
 	r.HandleFunc(addBlob.String(), JWTAuthMiddleware(addBlobHandler)).Methods("POST")
 	r.HandleFunc(modifyBlob.String(), JWTAuthMiddleware(modifyBlobHandler)).Methods("POST")
@@ -442,6 +534,6 @@ func main() {
 	r.HandleFunc(removeLikeBlob.String(), JWTAuthMiddleware(removeLikeBlobHandler)).Methods("GET")
 	r.HandleFunc(toggleLikeBlob.String(), JWTAuthMiddleware(toggleLikeBlobHandler)).Methods("GET")
 
-	//start the server
+	//*start the server
 	log.Fatal(http.ListenAndServe(":8080", r))
 }

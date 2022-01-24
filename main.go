@@ -28,6 +28,7 @@ type Post struct {
 //and, if so, it executes the actual handler (which is given as argument and is called "next")
 func JWTAuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// log.Println(r.Method, r.RequestURI)
 		//check if the cookie "JWT" exists
 		_, err := r.Cookie("JWT")
 		if err != nil {
@@ -43,6 +44,7 @@ func JWTAuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
 //* generic's handlers
 //return the login html page
 func loginPage(w http.ResponseWriter, r *http.Request) {
+	log.Println(r.Method, r.RequestURI)
 	//read the file
 	page, err := ioutil.ReadFile("pages/login.html")
 	if err != nil {
@@ -57,6 +59,7 @@ func loginPage(w http.ResponseWriter, r *http.Request) {
 }
 
 func loginHandler(w http.ResponseWriter, r *http.Request) {
+	log.Println(r.Method, r.RequestURI)
 	var post Post
 	//decode the json given in the post body (r.Body) and parse it into the post struct (as pointer)
 	err := json.NewDecoder(r.Body).Decode(&post)
@@ -105,6 +108,7 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func registerPage(w http.ResponseWriter, r *http.Request) {
+	log.Println(r.Method, r.RequestURI)
 	//read the file
 	page, err := ioutil.ReadFile("pages/register.html")
 	if err != nil {
@@ -119,6 +123,7 @@ func registerPage(w http.ResponseWriter, r *http.Request) {
 }
 
 func registerHandler(w http.ResponseWriter, r *http.Request) {
+	log.Println(r.Method, r.RequestURI)
 	//read from the post body the json data and fill the post struct
 	var post Post
 	err := json.NewDecoder(r.Body).Decode(&post)
@@ -140,6 +145,7 @@ func registerHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func homePage(w http.ResponseWriter, r *http.Request) {
+	log.Println(r.Method, r.RequestURI)
 	jwtContent, err := checkJWT(w, r)
 	if err != nil {
 		return
@@ -164,6 +170,7 @@ func homePage(w http.ResponseWriter, r *http.Request) {
 }
 
 func searchPageHandler(w http.ResponseWriter, r *http.Request) {
+	log.Println(r.Method, r.RequestURI)
 	page, err := ioutil.ReadFile("pages/search.html")
 	if err != nil {
 		//check for possible errors, if so return 503
@@ -177,6 +184,7 @@ func searchPageHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func userPageHandler(w http.ResponseWriter, r *http.Request) {
+	log.Println(r.Method, r.RequestURI)
 	jwtContent, err := checkJWT(w, r)
 	if err != nil {
 		return
@@ -221,6 +229,7 @@ func userPageHandler(w http.ResponseWriter, r *http.Request) {
 
 //* user's handlers
 func getUserBlobsHandler(w http.ResponseWriter, r *http.Request) {
+	log.Println(r.Method, r.RequestURI)
 	jwtContent, err := checkJWT(w, r)
 	if err != nil {
 		return
@@ -249,6 +258,7 @@ func getUserBlobsHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func modifyUserHandler(w http.ResponseWriter, r *http.Request) {
+	log.Println(r.Method, r.RequestURI)
 	jwtContent, err := checkJWT(w, r)
 	if err != nil {
 		return
@@ -276,6 +286,7 @@ func modifyUserHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func deleteUserHandler(w http.ResponseWriter, r *http.Request) {
+	log.Println(r.Method, r.RequestURI)
 	jwtContent, err := checkJWT(w, r)
 	if err != nil {
 		return
@@ -292,6 +303,7 @@ func deleteUserHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func overviewHandler(w http.ResponseWriter, r *http.Request) {
+	log.Println(r.Method, r.RequestURI)
 	jwtContent, err := checkJWT(w, r)
 	if err != nil {
 		return
@@ -314,6 +326,7 @@ func overviewHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func getUserHandler(w http.ResponseWriter, r *http.Request) {
+	log.Println(r.Method, r.RequestURI)
 	jwtContent, err := checkJWT(w, r)
 	if err != nil {
 		return
@@ -337,6 +350,7 @@ func getUserHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func searchUsersHandler(w http.ResponseWriter, r *http.Request) {
+	log.Println(r.Method, r.RequestURI)
 	jwtContent, err := checkJWT(w, r)
 	if err != nil {
 		return
@@ -355,6 +369,7 @@ func searchUsersHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func followUserHandler(w http.ResponseWriter, r *http.Request) {
+	log.Println(r.Method, r.RequestURI)
 	jwtContent, err := checkJWT(w, r)
 	if err != nil {
 		return
@@ -382,6 +397,7 @@ func followUserHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func unfollowUserHandler(w http.ResponseWriter, r *http.Request) {
+	log.Println(r.Method, r.RequestURI)
 	jwtContent, err := checkJWT(w, r)
 	if err != nil {
 		return
@@ -410,6 +426,7 @@ func unfollowUserHandler(w http.ResponseWriter, r *http.Request) {
 
 //* blob's handlers
 func getBlobHandler(w http.ResponseWriter, r *http.Request) {
+	log.Println(r.Method, r.RequestURI)
 	id, err := strconv.Atoi(mux.Vars(r)["id"])
 	if err != nil {
 		returnError(w, http.StatusBadRequest, "Invalid blob id")
@@ -427,6 +444,7 @@ func getBlobHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func addBlobHandler(w http.ResponseWriter, r *http.Request) {
+	log.Println(r.Method, r.RequestURI)
 	jwtContent, err := checkJWT(w, r)
 	if err != nil {
 		return
@@ -449,6 +467,7 @@ func addBlobHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func modifyBlobHandler(w http.ResponseWriter, r *http.Request) {
+	log.Println(r.Method, r.RequestURI)
 	jwtContent, err := checkJWT(w, r)
 	if err != nil {
 		return
@@ -488,6 +507,7 @@ func modifyBlobHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func deleteBlobHandler(w http.ResponseWriter, r *http.Request) {
+	log.Println(r.Method, r.RequestURI)
 	jwtContent, err := checkJWT(w, r)
 	if err != nil {
 		return
@@ -520,6 +540,7 @@ func deleteBlobHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func addLikeBlobHandler(w http.ResponseWriter, r *http.Request) {
+	log.Println(r.Method, r.RequestURI)
 	jwtContent, err := checkJWT(w, r)
 	if err != nil {
 		return
@@ -547,6 +568,7 @@ func addLikeBlobHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func removeLikeBlobHandler(w http.ResponseWriter, r *http.Request) {
+	log.Println(r.Method, r.RequestURI)
 	jwtContent, err := checkJWT(w, r)
 	if err != nil {
 		return
@@ -574,6 +596,7 @@ func removeLikeBlobHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func toggleLikeBlobHandler(w http.ResponseWriter, r *http.Request) {
+	log.Println(r.Method, r.RequestURI)
 	jwtContent, err := checkJWT(w, r)
 	if err != nil {
 		return
@@ -605,6 +628,7 @@ func main() {
 
 	//*generics
 	r.HandleFunc("/images/blob", func(w http.ResponseWriter, r *http.Request) {
+		log.Println(r.Method, r.RequestURI)
 		fileBytes, err := ioutil.ReadFile("blob.png")
 		if err != nil {
 			returnError(w, http.StatusInternalServerError, "Internal server error: "+err.Error())

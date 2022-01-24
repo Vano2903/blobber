@@ -1,2 +1,4 @@
 config.yaml
 docker/docker.tar
+db-dump
+no-data-db.tar

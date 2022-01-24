@@ -2,39 +2,55 @@ version: "3.9"
 
 services:
     go:
-        container_name: go
-        image: go
-        restart: on-failure
-        build:
-            context: .
-            dockerfile: Dockerfile
-            target: base
-        depends_on:
-            - db
-        environment:
-            SECRET: ?M/Xnn8#H).W96T[
-        ports:
-            - "8080:8080"
-        expose:
-            - 8080
-        # networks:
-        #     - elastic
+      # container_name: go
+      image: go
+      restart: always
+      build:
+        context: .
+        dockerfile: Dockerfile
+      links:
+        - db
+      environment:
+        SECRET: ciao
+      ports:
+        - "8080"
+      networks:
+        - "blobber"
+      deploy:
+        replicas: 3
     db:
-      image: mysql:5.7
+      image: mariadb:10.2
       restart: always
       environment:
-        MYSQL_DATABASE: Blobber
-        MYSQL_USER: bano
-        MYSQL_PASSWORD: bano
+        MYSQL_DATABASE: blobber
+        MYSQL_USER: vano
+        MYSQL_PASSWORD: vano
         MYSQL_ROOT_PASSWORD: root
       ports:
-        - 33061:3306
+        - "3306"
       # expose:
       #   - 3306
       volumes:
-        - my-db:/var/lib/mysql
+        - ./db-dump:/var/lib/mysql
+      networks:
+        - "blobber"
+    # nginx container
+    nginx:
+      # specifies the latest nginx image
+      image: nginx:latest
+      # Connects the conf file of the container to the conf file in our folder
+      volumes:
+          - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      # It will start up the nginx only when all api containers have started
+      depends_on: 
+        - go
+      # Connects the port 80 of the nginx container to localhost:80 or localhost
+      ports: 
+        - "80:80"
+      networks: 
+        - "blobber"
 volumes:
-  my-db:
-# networks:
-#   elastic:
-#     driver: bridge
+  mariadb:
+
+networks:
+  blobber:

@@ -13,32 +13,30 @@ type Blob struct {
 	AddedDate   time.Time `json:"added_date"`
 	LikesCounts int       `json:"likes"`
 	Liked       bool      `json:"liked"`
+	IsOwner     bool      `json:"is_owner"`
 }
 
-func (b *Blob) HasLiked(requesterID int) {
+func (b *Blob) Info(requesterID int) {
 	db, err := connectToDB()
 	if err != nil {
 		return
 	}
 	defer db.Close()
+
 	var count int
-	db.QueryRow("SELECT COUNT(*) FROM likes WHERE ID_blob = ? and ID_user = ?", b.ID, requesterID).Scan(&count)
+	db.QueryRow("SELECT COUNT(*) FROM likes WHERE ID_blob = ? AND ID_user = ?", b.ID, requesterID).Scan(&count)
 	if count > 0 {
 		b.Liked = true
 		return
 	}
-	b.Liked = false
-}
 
-func (b *Blob) CountLikes() error {
-	db, err := connectToDB()
-	if err != nil {
-		return err
+	db.QueryRow("SELECT COUNT(*) FROM blobs WHERE ID = ? AND ID_user = ?", b.ID, requesterID).Scan(&count)
+	if count > 0 {
+		b.IsOwner = true
+		return
 	}
-	defer db.Close()
 
 	db.QueryRow("SELECT COUNT(*) FROM likes WHERE ID_blob = ?", b.ID).Scan(&b.LikesCounts)
-	return nil
 }
 
 func (b Blob) Like(LikerID int) error {
@@ -125,7 +123,6 @@ func QueryBlobByID(id, requesterID int) (Blob, error) {
 		return Blob{}, fmt.Errorf("Blob with id %d not found", id)
 	}
 
-	blob.CountLikes()
-	blob.HasLiked(requesterID)
+	blob.Info(requesterID)
 	return blob, nil
 }

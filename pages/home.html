@@ -39,15 +39,15 @@
                     </lord-icon>
                     Modifica Bio
                 </button>
-                <div id="caption" style="display:none;" class="form-group">
-                    <label for="bioContent">Messaggio del blob</label>
-                    <textarea class="form-control" id="bioContent" rows="3">
 
-                    </textarea>
-                    <br>
-                    <button type="button" class="btn btn-primary" onclick="changeCaption()">Applica</button>
-                </div>
             </div>
+        </div>
+
+        <div id="caption" style="display:none;" class="col-6 form-group">
+            <label for="bioContent">Messaggio del blob</label>
+            <textarea class="form-control" id="bioContent" rows="3"></textarea>
+            <br>
+            <button type="button" class="btn btn-primary" onclick="changeCaption()">Applica</button>
         </div>
 
         <!-- <hr class="col-6"> -->
@@ -96,66 +96,65 @@
             console.log(resp);
             if (resp.error) {
                 alert(resp.msg);
+                return;
             }
-            else {
-                let overview = resp.overview;
-                if (resp.overview !== null) {
-                    let cardContainer = document.getElementById("feed");
-                    overview.forEach(single => {
-                        const card = document.createElement('div');
-                        card.className = 'card';
-                        card.style.width = '24rem';
-                        card.style.padding = '10px';
-                        card.style.margin = '10px';
+            let overview = resp.overview;
+            if (resp.overview !== null) {
+                let cardContainer = document.getElementById("feed");
+                overview.forEach(single => {
+                    const card = document.createElement('div');
+                    card.className = 'card';
+                    card.style.width = '24rem';
+                    card.style.padding = '10px';
+                    card.style.margin = '10px';
 
-                        const cardBody = document.createElement('div');
-                        cardBody.className = 'card-body';
+                    const cardBody = document.createElement('div');
+                    cardBody.className = 'card-body';
 
-                        const cardTitle = document.createElement('a');
-                        cardTitle.style.fontWeight = 'bold';
-                        cardTitle.style.marginTop = "1em";
-                        cardTitle.style.marginBottom = "1em";
-                        cardTitle.style.fontSize = "1.17em";
-                        cardTitle.className = 'card-title';
-                        cardTitle.innerText = single.username;
-                        cardTitle.href = '/users/page/' + single.user_id;
+                    const cardTitle = document.createElement('a');
+                    cardTitle.style.fontWeight = 'bold';
+                    cardTitle.style.marginTop = "1em";
+                    cardTitle.style.marginBottom = "1em";
+                    cardTitle.style.fontSize = "1.17em";
+                    cardTitle.className = 'card-title';
+                    cardTitle.innerText = single.username;
+                    cardTitle.href = '/users/page/' + single.user_id;
 
-                        const cardText = document.createElement('p');
-                        cardText.className = 'card-text';
-                        cardText.innerText = single.content;
+                    const cardText = document.createElement('p');
+                    cardText.className = 'card-text';
+                    cardText.innerText = single.content;
 
-                        let hr = document.createElement('hr');
-                        let likeButton = document.createElement('button');
-                        likeButton.id = "likeButton" + single.id;
-                        if (single.liked) {
-                            likeButton.className = 'btn btn-danger';
-                            likeButton.innerText = 'Un-Like';
-                            likeButton.setAttribute("onclick", "toggleLike(" + single.id + ")")
-                        }
-                        else {
-                            likeButton.className = 'btn btn-primary';
-                            likeButton.innerText = 'Like';
-                            likeButton.setAttribute("onclick", "toggleLike(" + single.id + ")")
-                        }
+                    let hr = document.createElement('hr');
+                    let likeButton = document.createElement('button');
+                    likeButton.id = "likeButton" + single.id;
+                    if (single.liked) {
+                        likeButton.className = 'btn btn-danger';
+                        likeButton.innerText = 'Un-Like';
+                        likeButton.setAttribute("onclick", "toggleLike(" + single.id + ")")
+                    } else {
+                        likeButton.className = 'btn btn-primary';
+                        likeButton.innerText = 'Like';
+                        likeButton.setAttribute("onclick", "toggleLike(" + single.id + ")")
+                    }
 
-                        let likeCounter = document.createElement('p');
-                        likeCounter.id = "likeCounter" + single.id;
-                        likeCounter.innerText = single.likes + " likes";
+                    let likeCounter = document.createElement('p');
+                    likeCounter.id = "likeCounter" + single.id;
+                    likeCounter.innerText = single.likes + " likes";
 
-                        cardBody.appendChild(cardTitle);
-                        cardBody.appendChild(cardText);
-                        cardBody.appendChild(hr);
-                        cardBody.appendChild(likeCounter);
-                        cardBody.appendChild(hr);
+                    cardBody.appendChild(cardTitle);
+                    cardBody.appendChild(cardText);
+                    cardBody.appendChild(hr);
+                    cardBody.appendChild(likeCounter);
+                    cardBody.appendChild(hr);
 
-                        cardBody.appendChild(likeButton);
-                        card.appendChild(cardBody);
-                        cardContainer.appendChild(card);
-                    });
-                } else {
-                    document.getElementById("feed").innerHTML = "<h1>WOW CHE VUOTO, VAI A SEGUIRE QUALCUNO</h1>";
-                }
+                    cardBody.appendChild(likeButton);
+                    card.appendChild(cardBody);
+                    cardContainer.appendChild(card);
+                });
+            } else {
+                document.getElementById("feed").innerHTML = "<h1>WOW CHE VUOTO, VAI A SEGUIRE QUALCUNO</h1>";
             }
+
         }
 
         async function toggleLike(id) {
@@ -206,7 +205,7 @@
         }
 
         async function logout() {
-            document.cookie = "JWT=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+            document.cookie = "JWT=; expires=Thu, 01 Jan 1970 00:00:01 GMT;";
             window.location.href = "/login";
         }
 

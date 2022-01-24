@@ -70,8 +70,7 @@ func (u User) GetBlobs(sorted bool) ([]Blob, error) {
 		if err != nil {
 			return []Blob{}, err
 		}
-		blob.HasLiked(u.ID)
-		blob.CountLikes()
+		blob.Info(u.ID)
 		blobs = append(blobs, blob)
 	}
 
@@ -128,8 +127,7 @@ func (u User) GetOverview() ([]Blob, error) {
 		if err != nil {
 			return []Blob{}, err
 		}
-		blob.CountLikes()
-		blob.HasLiked(u.ID)
+		blob.Info(u.ID)
 		blobs = append(blobs, blob)
 	}
 	return blobs, nil
@@ -216,7 +214,7 @@ func (u *User) Info(requesterID int) error {
 	}
 	defer db.Close()
 
-	if err := db.QueryRow("SELECT COUNT(ID_user) FROM likes WHERE ID_user=?", u.ID).Scan(&u.LikesCount); err != nil {
+	if err := db.QueryRow("SELECT COUNT(*) FROM likes l JOIN blobs b ON l.ID_blob = b.ID JOIN users u ON l.ID_user = u.ID WHERE b.ID_user = ?", u.ID).Scan(&u.LikesCount); err != nil {
 		return err
 	}
 
@@ -229,11 +227,7 @@ func (u *User) Info(requesterID int) error {
 	}
 
 	//check if the requester is following the user
-	// var following bool
 	return db.QueryRow("SELECT COUNT(ID_user_followed) FROM follows WHERE ID_user_followed=? AND ID_user_follower=?", u.ID, requesterID).Scan(&u.Follows)
-	// if err != nil {
-	// 	return err
-	// }
 }
 
 //not methods

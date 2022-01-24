@@ -33,9 +33,10 @@ func JWTAuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
 		if err != nil {
 			//if err is not nil it means that the cookie was not found so we return a 401 unauthorized
 			returnError(w, http.StatusUnauthorized, "missing 'JWT' cookie")
+			return
+		} else {
+			next(w, r)
 		}
-
-		next(w, r)
 	})
 }
 
@@ -139,7 +140,10 @@ func registerHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func homePage(w http.ResponseWriter, r *http.Request) {
-	jwtContent := checkJWT(w, r)
+	jwtContent, err := checkJWT(w, r)
+	if err != nil {
+		return
+	}
 
 	data := struct {
 		Username string
@@ -172,12 +176,86 @@ func searchPageHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write(page)
 }
 
+func userPageHandler(w http.ResponseWriter, r *http.Request) {
+	jwtContent, err := checkJWT(w, r)
+	if err != nil {
+		return
+	}
+
+	id, err := strconv.Atoi(mux.Vars(r)["id"])
+	if err != nil {
+		returnError(w, http.StatusBadRequest, "Invalid id")
+		return
+	}
+
+	user, err := QueryUserByID(id, jwtContent.UserID)
+	if err != nil {
+		returnError(w, http.StatusNotFound, "User not found")
+		return
+	}
+
+	followsButton := "Follow"
+	if user.Follows {
+		followsButton = "Un-Follow"
+	}
+
+	data := struct {
+		Username      string
+		ID            int
+		FollowsButton string
+	}{
+		Username:      user.Username,
+		ID:            user.ID,
+		FollowsButton: followsButton,
+	}
+
+	tmpl, err := template.ParseFiles("pages/user.html")
+	if err != nil {
+		returnError(w, http.StatusServiceUnavailable, "Internal server error: "+err.Error())
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/html")
+	tmpl.Execute(w, data)
+}
+
 //* user's handlers
+func getUserBlobsHandler(w http.ResponseWriter, r *http.Request) {
+	jwtContent, err := checkJWT(w, r)
+	if err != nil {
+		return
+	}
+
+	id, err := strconv.Atoi(mux.Vars(r)["id"])
+	if err != nil {
+		returnError(w, http.StatusBadRequest, "Invalid id")
+		return
+	}
+
+	user, err := QueryUserByID(id, jwtContent.UserID)
+	if err != nil {
+		returnError(w, http.StatusInternalServerError, "Internal server error: "+err.Error())
+		return
+	}
+
+	blobs, err := user.GetBlobs(true)
+	if err != nil {
+		returnError(w, http.StatusInternalServerError, "Internal server error: "+err.Error())
+		return
+	}
+
+	blobsJson, _ := json.Marshal(blobs)
+	returnSuccessJson(w, http.StatusOK, "Successfully retrieved blobs", "blobs", blobsJson)
+}
+
 func modifyUserHandler(w http.ResponseWriter, r *http.Request) {
-	jwtContent := checkJWT(w, r)
+	jwtContent, err := checkJWT(w, r)
+	if err != nil {
+		return
+	}
 
 	var post Post
-	err := json.NewDecoder(r.Body).Decode(&post)
+	err = json.NewDecoder(r.Body).Decode(&post)
 	if err != nil {
 		returnError(w, http.StatusBadRequest, "Invalid json, "+err.Error())
 		return
@@ -198,7 +276,10 @@ func modifyUserHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func deleteUserHandler(w http.ResponseWriter, r *http.Request) {
-	jwtContent := checkJWT(w, r)
+	jwtContent, err := checkJWT(w, r)
+	if err != nil {
+		return
+	}
 
 	user, err := QueryUserByID(jwtContent.UserID, 0)
 	user.Delete()
@@ -211,7 +292,10 @@ func deleteUserHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func overviewHandler(w http.ResponseWriter, r *http.Request) {
-	jwtContent := checkJWT(w, r)
+	jwtContent, err := checkJWT(w, r)
+	if err != nil {
+		return
+	}
 
 	user, err := QueryUserByID(jwtContent.UserID, 0)
 	if err != nil {
@@ -230,7 +314,10 @@ func overviewHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func getUserHandler(w http.ResponseWriter, r *http.Request) {
-	jwtContent := checkJWT(w, r)
+	jwtContent, err := checkJWT(w, r)
+	if err != nil {
+		return
+	}
 
 	id, err := strconv.Atoi(mux.Vars(r)["id"])
 	if err != nil {
@@ -250,7 +337,10 @@ func getUserHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func searchUsersHandler(w http.ResponseWriter, r *http.Request) {
-	jwtContent := checkJWT(w, r)
+	jwtContent, err := checkJWT(w, r)
+	if err != nil {
+		return
+	}
 
 	search := mux.Vars(r)["query"]
 
@@ -265,7 +355,10 @@ func searchUsersHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func followUserHandler(w http.ResponseWriter, r *http.Request) {
-	jwtContent := checkJWT(w, r)
+	jwtContent, err := checkJWT(w, r)
+	if err != nil {
+		return
+	}
 
 	id, err := strconv.Atoi(mux.Vars(r)["id"])
 	if err != nil {
@@ -289,7 +382,10 @@ func followUserHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func unfollowUserHandler(w http.ResponseWriter, r *http.Request) {
-	jwtContent := checkJWT(w, r)
+	jwtContent, err := checkJWT(w, r)
+	if err != nil {
+		return
+	}
 
 	id, err := strconv.Atoi(mux.Vars(r)["id"])
 	if err != nil {
@@ -331,10 +427,13 @@ func getBlobHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func addBlobHandler(w http.ResponseWriter, r *http.Request) {
-	jwtContent := checkJWT(w, r)
+	jwtContent, err := checkJWT(w, r)
+	if err != nil {
+		return
+	}
 
 	var post Post
-	err := json.NewDecoder(r.Body).Decode(&post)
+	err = json.NewDecoder(r.Body).Decode(&post)
 	if err != nil {
 		returnError(w, http.StatusBadRequest, "Invalid request body: "+err.Error())
 		return
@@ -350,10 +449,13 @@ func addBlobHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func modifyBlobHandler(w http.ResponseWriter, r *http.Request) {
-	jwtContent := checkJWT(w, r)
+	jwtContent, err := checkJWT(w, r)
+	if err != nil {
+		return
+	}
 
 	var post Post
-	err := json.NewDecoder(r.Body).Decode(&post)
+	err = json.NewDecoder(r.Body).Decode(&post)
 	if err != nil {
 		returnError(w, http.StatusBadRequest, "Invalid request body: "+err.Error())
 		return
@@ -386,7 +488,10 @@ func modifyBlobHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func deleteBlobHandler(w http.ResponseWriter, r *http.Request) {
-	jwtContent := checkJWT(w, r)
+	jwtContent, err := checkJWT(w, r)
+	if err != nil {
+		return
+	}
 
 	id, err := strconv.Atoi(mux.Vars(r)["id"])
 	if err != nil {
@@ -415,7 +520,10 @@ func deleteBlobHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func addLikeBlobHandler(w http.ResponseWriter, r *http.Request) {
-	jwtContent := checkJWT(w, r)
+	jwtContent, err := checkJWT(w, r)
+	if err != nil {
+		return
+	}
 
 	id, err := strconv.Atoi(mux.Vars(r)["id"])
 	if err != nil {
@@ -439,7 +547,10 @@ func addLikeBlobHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func removeLikeBlobHandler(w http.ResponseWriter, r *http.Request) {
-	jwtContent := checkJWT(w, r)
+	jwtContent, err := checkJWT(w, r)
+	if err != nil {
+		return
+	}
 
 	id, err := strconv.Atoi(mux.Vars(r)["id"])
 	if err != nil {
@@ -463,7 +574,10 @@ func removeLikeBlobHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func toggleLikeBlobHandler(w http.ResponseWriter, r *http.Request) {
-	jwtContent := checkJWT(w, r)
+	jwtContent, err := checkJWT(w, r)
+	if err != nil {
+		return
+	}
 
 	id, err := strconv.Atoi(mux.Vars(r)["id"])
 	if err != nil {
@@ -493,7 +607,8 @@ func main() {
 	r.HandleFunc("/images/blob", func(w http.ResponseWriter, r *http.Request) {
 		fileBytes, err := ioutil.ReadFile("blob.png")
 		if err != nil {
-			panic(err)
+			returnError(w, http.StatusInternalServerError, "Internal server error: "+err.Error())
+			return
 		}
 		w.WriteHeader(http.StatusOK)
 		w.Header().Set("Content-Type", "application/octet-stream")
@@ -506,10 +621,7 @@ func main() {
 	r.HandleFunc(home.String(), JWTAuthMiddleware(homePage)).Methods("GET")
 	r.HandleFunc(searchPage.String(), JWTAuthMiddleware(searchPageHandler)).Methods("GET")
 
-	r.HandleFunc(getUserPage.String(), func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusNotImplemented)
-		w.Write([]byte("questa pagina non é ancora stata implementata, torna più tardi"))
-	}).Methods("GET") //JWTAuthMiddleware(getUserPageHandler)
+	r.HandleFunc(getUserPage.String(), JWTAuthMiddleware(userPageHandler)).Methods("GET") //JWTAuthMiddleware(getUserPageHandler)
 
 	//api
 	r.HandleFunc(login.String(), loginHandler).Methods("POST")
@@ -518,6 +630,7 @@ func main() {
 
 	//*users (all api)
 	r.HandleFunc(getUser.String(), JWTAuthMiddleware(getUserHandler)).Methods("GET")
+	r.HandleFunc(getUserBlobs.String(), JWTAuthMiddleware(getUserBlobsHandler)).Methods("GET")
 	r.HandleFunc(searchUsers.String(), JWTAuthMiddleware(searchUsersHandler)).Methods("GET")
 	r.HandleFunc(followUser.String(), JWTAuthMiddleware(followUserHandler)).Methods("GET")
 	r.HandleFunc(unfollowUser.String(), JWTAuthMiddleware(unfollowUserHandler)).Methods("GET")

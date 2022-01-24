@@ -9,7 +9,7 @@ import (
 )
 
 func connectToDB() (*sql.DB, error) {
-	db, err := sql.Open("mysql", "root:root@tcp(127.0.0.1:33061)/Blobber?parseTime=true&charset=utf8") //
+	db, err := sql.Open("mysql", "root:root@tcp(db:3306)/blobber?parseTime=true&charset=utf8") //
 	if err != nil {
 		return nil, err
 	}
@@ -40,17 +40,17 @@ func returnSuccessJson(w http.ResponseWriter, code int, message, key string, jso
 	fmt.Fprintf(w, `{"code": %d, "msg":"%s", "error": false, "%s": %s}`, code, message, key, json)
 }
 
-func checkJWT(w http.ResponseWriter, r *http.Request) CustomClaims {
+func checkJWT(w http.ResponseWriter, r *http.Request) (CustomClaims, error) {
 	jwt, err := r.Cookie("JWT")
 	if err != nil {
 		returnError(w, http.StatusUnauthorized, "No JWT cookie found")
-		return CustomClaims{}
+		return CustomClaims{}, err
 	}
 
 	jwtContent, err := ParseToken(jwt.Value)
 	if err != nil {
 		returnError(w, http.StatusUnauthorized, "Invalid JWT")
-		return CustomClaims{}
+		return CustomClaims{}, err
 	}
-	return jwtContent
+	return jwtContent, nil
 }

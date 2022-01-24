@@ -11,15 +11,15 @@ const (
 	searchPage Endpoint = "/search"
 
 	//users
-	getUser Endpoint = "/users/{id}"
-	//TODO
-	getUserPage Endpoint = "/users/Page/{id}"
-
+	getUser      Endpoint = "/users/{id}"
+	getUserBlobs Endpoint = "/users/{id}/blobs"
 	followUser   Endpoint = "/users/{id}/follow"
 	unfollowUser Endpoint = "/users/{id}/unfollow"
 	searchUsers  Endpoint = "/users/search/{query}"
 	modifyUser   Endpoint = "/users/modify"
 	deleteUser   Endpoint = "/users/delete"
+	//TODO
+	getUserPage Endpoint = "/users/page/{id}"
 
 	//blobs
 	addBlob    Endpoint = "/blob/add"

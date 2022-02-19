@@ -34,7 +34,7 @@ func JWTAuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
 		if err != nil {
 			// OLD: if err is not nil it means that the cookie was not found so we return a 401 unauthorized
 			// returnError(w, http.StatusUnauthorized, "missing 'JWT' cookie")
-			
+
 			//if err is not nil then redirect to login page
 			http.Redirect(w, r, "/login", http.StatusSeeOther)
 			return
@@ -154,12 +154,20 @@ func homePage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	user, err := QueryUserByID(jwtContent.UserID, 0)
+	if err != nil {
+		returnError(w, http.StatusBadRequest, "User not found, error: "+err.Error())
+		return
+	}
+
 	data := struct {
 		Username string
 		ID       int
+		Bio      string
 	}{
 		Username: jwtContent.Username,
 		ID:       jwtContent.UserID,
+		Bio:      user.Description,
 	}
 
 	tmpl, err := template.ParseFiles("pages/home.html")

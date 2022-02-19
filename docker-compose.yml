@@ -46,7 +46,7 @@ services:
         - go
       # Connects the port 80 of the nginx container to localhost:80 or localhost
       ports: 
-        - "80:80"
+        - "8080:80"
       networks: 
         - "blobber"
 volumes:

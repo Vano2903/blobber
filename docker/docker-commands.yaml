@@ -1,3 +1,0 @@
-export a docker into tar: sudo docker export <hash docker> > <path/to/file>.tar
-access the terminal of the docker: sudo docker exec -it <hash docker> bash -l
-start the compose: sudo docker-compose up -d

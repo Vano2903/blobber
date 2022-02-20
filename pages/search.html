@@ -57,6 +57,7 @@
             const r = await fetch('/users/search/' + user);
             const resp = await r.json();
             const cardContainer = document.getElementById('card-container');
+            cardContainer.innerHTML = "";
             console.log(resp);
             if (resp.error) {
                 alert(resp.msg);

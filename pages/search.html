@@ -2,7 +2,7 @@
 <html lang="en">
 
 <head>
-    <title>get exam, idk man</title>
+    <title>Search User</title>
     <!-- Required meta tags -->
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
@@ -13,8 +13,9 @@
 </head>
 
 <body>
+    <br>
+    <button type="button" style="margin-left: 25px;" class="btn btn-primary" onclick="home()">Home</button>
     <center>
-        <br>
         <h1>CERCA UTENTE</h1>
         <hr>
 
@@ -46,6 +47,10 @@
         crossorigin="anonymous"></script>
 
     <script>
+        function home() {
+            window.location.href = "/";
+        }
+
         async function search() {
             var user = document.getElementById("user").value;
             console.log(user);

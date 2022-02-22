@@ -36,7 +36,8 @@
     <script>
         let id = parseInt(document.title.split("-")[1].trim());
 
-        let follows = document.getElementById("followButton").value
+        let follows = document.getElementById("followButton").innerText
+        console.log("follows:",follows)
         if (follows == "Un-Follow") {
             followButton.className = 'btn btn-danger';
             followButton.innerText = 'Un-Follow';
@@ -202,6 +203,32 @@
                     }
                     alert("Blob updated");
                 })
+        }
+    
+        async function addFollow(id) {
+            const r = await fetch(`/users/${id}/follow`);
+            const resp = await r.json();
+            if (resp.error) {
+                alert(resp.msg);
+            }
+            else {
+                document.getElementById("followButton").className = 'btn btn-danger';
+                document.getElementById("followButton").innerText = 'Un-Follow';
+                document.getElementById("followButton").setAttribute("onclick", "removeFollow(" + id + ")");
+            }
+        }
+
+        async function removeFollow(id) {
+            const r = await fetch(`/users/${id}/unfollow`);
+            const resp = await r.json();
+            if (resp.error) {
+                alert(resp.msg);
+            }
+            else {
+                document.getElementById("followButton").className = 'btn btn-primary';
+                document.getElementById("followButton").innerText = 'Follow';
+                document.getElementById("followButton").setAttribute("onclick", "addFollow(" + id + ")")
+            }
         }
     </script>
     <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"

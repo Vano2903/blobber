@@ -217,15 +217,29 @@ func userPageHandler(w http.ResponseWriter, r *http.Request) {
 	if user.Follows {
 		followsButton = "Un-Follow"
 	}
+	if user.ID == jwtContent.UserID {
+		followsButton = "remove"
+	}
+	blobs, _ := user.GetBlobs(false, jwtContent.UserID)
 
 	data := struct {
 		Username      string
 		ID            int
 		FollowsButton string
+		Likes         int
+		Blobs         int
+		Followers     int
+		Followings    int
+		Description   string
 	}{
 		Username:      user.Username,
 		ID:            user.ID,
 		FollowsButton: followsButton,
+		Likes:         user.LikesCount,
+		Blobs:         len(blobs),
+		Followers:     user.FollowersCount,
+		Followings:    user.FollowingCount,
+		Description:   user.Description,
 	}
 
 	tmpl, err := template.ParseFiles("pages/user.html")
@@ -258,7 +272,7 @@ func getUserBlobsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	blobs, err := user.GetBlobs(true)
+	blobs, err := user.GetBlobs(true, jwtContent.UserID)
 	if err != nil {
 		returnError(w, http.StatusInternalServerError, "Internal server error: "+err.Error())
 		return
@@ -368,7 +382,7 @@ func searchUsersHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	search := mux.Vars(r)["query"]
-
+	fmt.Println(search)
 	users, err := QueryUsersBySubstring(search, jwtContent.UserID)
 	if err != nil {
 		returnError(w, http.StatusNotFound, "no users found")

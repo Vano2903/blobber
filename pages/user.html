@@ -14,22 +14,196 @@
         integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
 </head>
 
-<body>
+<body onload="init()">
     <center>
         <h1>{{.Username}}</h1>
         <button id="followButton">{{.FollowsButton}}</button>
-        <p id="likes">Ha {{.Likes}} like, {{.Followers}} followers e segue {{.Followed}} utenti</p>
+        <p id="likes">Ha ricevuto {{.Likes}} likes e postato {{.Blobs}} blobs, ha {{.Followers}} followers e segue
+            {{.Followings}} utenti</p>
         <br>
-        <h3>{{.Description}}</h3>
+        <h4>{{.Description}}</h4>
         <hr class="col-6">
-        <br>
-        <hr class="col-6">
+        <!-- <br>
+        <hr class="col-6"> -->
         <div id="card-container">
 
         </div>
     </center>
     <!-- Optional JavaScript -->
     <!-- jQuery first, then Popper.js, then Bootstrap JS -->
+
+
+    <script>
+        let id = parseInt(document.title.split("-")[1].trim());
+
+        let follows = document.getElementById("followButton").value
+        if (follows == "Un-Follow") {
+            followButton.className = 'btn btn-danger';
+            followButton.innerText = 'Un-Follow';
+            followButton.setAttribute("onclick", "removeFollow(" + id + ")");
+        } else if (follows == "Follow") {
+            followButton.className = 'btn btn-primary';
+            followButton.innerText = 'Follow';
+            followButton.setAttribute("onclick", "addFollow(" + id + ")")
+        } else {
+            followButton.remove();
+        }
+
+        async function init() {
+            console.log(id);
+            let isOwner = id == localStorage.getItem("id");
+            let response = await fetch(`/users/${id}/blobs`);
+            let resp = await response.json();
+            console.log(resp);
+            if (resp.error) {
+                alert(resp.msg);
+                return;
+            }
+            let blobs = resp.blobs;
+            // console.log(blobs === null);
+            if (blobs === null) {
+                document.getElementById("card-container").innerHTML = "<h1>WOW CHE VUOTO, QUESTO UTENTE MI STA SOLO OCCUPANDO SPAZIO INUTILE SUL DB ;-;</h1>";
+                return;
+            }
+            let cardContainer = document.getElementById("card-container");
+            blobs.forEach(blob => {
+                //card div and set dimensions
+                const card = document.createElement('div');
+                card.id = "card" + blob.id;
+                card.className = 'card';
+                card.style.width = '24rem';
+                card.style.padding = '10px';
+                card.style.margin = '10px';
+
+                //set the body of the card
+                const cardBody = document.createElement('div');
+                cardBody.className = 'card-body';
+
+                //set the title of the card
+                const cardTitle = document.createElement('a');
+                cardTitle.style.fontWeight = 'bold';
+                cardTitle.style.marginTop = "1em";
+                cardTitle.style.marginBottom = "1em";
+                cardTitle.style.fontSize = "1.17em";
+                cardTitle.className = 'card-title';
+                cardTitle.innerText = blob.username;
+                cardTitle.href = '/users/page/' + blob.user_id;
+
+                //set the content of the card
+                const cardText = document.createElement('p');
+                cardText.id = "blob" + blob.id;
+                if (isOwner) {
+                    cardText.contentEditable = true;
+                    cardText.setAttribute("onblur", "updateBlob(" + blob.id + ")");
+                }
+                cardText.className = 'card-text';
+                cardText.innerText = blob.content;
+
+                //like|unlike button
+                let likeButton = document.createElement('button');
+                likeButton.id = "likeButton" + blob.id;
+                likeButton.style.marginRight = "1em";
+                likeButton.setAttribute("onclick", "toggleLike(" + blob.id + ")")
+                if (blob.liked) {
+                    likeButton.className = 'btn btn-danger';
+                    likeButton.innerText = 'Un-Like';
+                } else {
+                    likeButton.className = 'btn btn-primary';
+                    likeButton.innerText = 'Like';
+                }
+
+                //delete button if the user is the owner
+                // let deleteButton = document.createElement("div");
+                // if (isOwner) {
+                let deleteButton = document.createElement('button');
+                deleteButton.style.marginLeft = "1em";
+                deleteButton.className = 'btn btn-danger';
+                deleteButton.innerText = 'Delete';
+                deleteButton.setAttribute("onclick", "deleteBlob(" + blob.id + ")")
+                // }
+
+                //like counter section
+                let likeCounter = document.createElement('p');
+                likeCounter.id = "likeCounter" + blob.id;
+                likeCounter.innerText = blob.likes + " likes";
+
+                //hr
+                let hr = document.createElement('hr');
+
+                cardBody.appendChild(cardTitle);
+                cardBody.appendChild(cardText);
+                cardBody.appendChild(hr);
+                cardBody.appendChild(likeCounter);
+                cardBody.appendChild(hr);
+                cardBody.appendChild(likeButton);
+                if (isOwner) {
+                    cardBody.appendChild(deleteButton);
+                }
+
+                card.appendChild(cardBody);
+                cardContainer.appendChild(card);
+            });
+        }
+
+        async function deleteBlob(id) {
+            //do a get request to /blob/{id}/delete
+            let response = await fetch(`/blob/${id}/delete`);
+            let resp = await response.json();
+            console.log(resp);
+            if (resp.error) {
+                alert(resp.msg);
+                return;
+            }
+            //remove the blob from the page
+            let blob = document.getElementById("card" + id);
+            blob.remove();
+        }
+
+        async function toggleLike(id) {
+            let response = await fetch(`/blob/${id}/like/toggle`);
+            let resp = await response.json();
+            console.log(resp);
+            if (resp.error) {
+                alert(resp.msg);
+            }
+            else {
+                let likeButton = document.getElementById("likeButton" + id);
+                let likeCounter = document.getElementById("likeCounter" + id);
+                if (likeButton.innerHTML == "Un-Like") {
+                    likeButton.innerHTML = "Like";
+                    likeButton.className = 'btn btn-primary';
+                    likeCounter.innerText = parseInt(likeCounter.innerText) - 1 + " likes";
+                }
+                else {
+                    likeButton.innerHTML = "Un-Like";
+                    likeButton.className = 'btn btn-danger';
+                    likeCounter.innerText = parseInt(likeCounter.innerText) + 1 + " likes";
+                }
+            }
+        }
+
+        function updateBlob(id) {
+            let blob = document.getElementById("blob" + id);
+            let content = blob.innerText;
+            console.log(content)
+            fetch(`/blob/${id}/modify`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    content: content
+                })
+            }).then(res => res.json())
+                .then(res => {
+                    if (res.error) {
+                        alert(res.msg);
+                        return;
+                    }
+                    alert("Blob updated");
+                })
+        }
+    </script>
     <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"
         integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo"
         crossorigin="anonymous"></script>
@@ -39,89 +213,6 @@
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"
         integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM"
         crossorigin="anonymous"></script>
-
-    <script>
-
-        let id = parseInt(document.title.split("-")[1].trim());
-        console.log(id);
-
-        let follows = document.getElementById("followButton").value
-        if (follows == "Un-Follow") {
-            followButton.className = 'btn btn-danger';
-            followButton.innerText = 'Un-Follow';
-            followButton.setAttribute("onclick", "removeFollow(" + id + ")");
-        } else {
-            followButton.className = 'btn btn-primary';
-            followButton.innerText = 'Follow';
-            followButton.setAttribute("onclick", "addFollow(" + id + ")")
-        }
-
-        async function init() {
-            let response = await fetch(`/users/${id}/blobs`);
-            let resp = await response.json();
-            console.log(resp);
-            if (resp.error) {
-                alert(resp.msg);
-                return;
-            }
-            let blobs = resp.blobs;
-            if (resp.blobs !== null) {
-                let cardContainer = document.getElementById("feed");
-                blobs.forEach(blob => {
-                    const card = document.createElement('div');
-                    card.className = 'card';
-                    card.style.width = '24rem';
-                    card.style.padding = '10px';
-                    card.style.margin = '10px';
-
-                    const cardBody = document.createElement('div');
-                    cardBody.className = 'card-body';
-
-                    const cardTitle = document.createElement('a');
-                    cardTitle.style.fontWeight = 'bold';
-                    cardTitle.style.marginTop = "1em";
-                    cardTitle.style.marginBottom = "1em";
-                    cardTitle.style.fontSize = "1.17em";
-                    cardTitle.className = 'card-title';
-                    cardTitle.innerText = blob.username;
-                    cardTitle.href = '/users/page/' + blob.user_id;
-
-                    const cardText = document.createElement('p');
-                    cardText.className = 'card-text';
-                    cardText.innerText = blob.content;
-
-                    let hr = document.createElement('hr');
-                    let likeButton = document.createElement('button');
-                    likeButton.id = "likeButton" + blob.id;
-                    if (blob.liked) {
-                        likeButton.className = 'btn btn-danger';
-                        likeButton.innerText = 'Un-Like';
-                        likeButton.setAttribute("onclick", "toggleLike(" + blob.id + ")")
-                    } else {
-                        likeButton.className = 'btn btn-primary';
-                        likeButton.innerText = 'Like';
-                        likeButton.setAttribute("onclick", "toggleLike(" + blob.id + ")")
-                    }
-
-                    let likeCounter = document.createElement('p');
-                    likeCounter.id = "likeCounter" + blob.id;
-                    likeCounter.innerText = blob.likes + " likes";
-
-                    cardBody.appendChild(cardTitle);
-                    cardBody.appendChild(cardText);
-                    cardBody.appendChild(hr);
-                    cardBody.appendChild(likeCounter);
-                    cardBody.appendChild(hr);
-
-                    cardBody.appendChild(likeButton);
-                    card.appendChild(cardBody);
-                    cardContainer.appendChild(card);
-                });
-            } else {
-                document.getElementById("feed").innerHTML = "<h1>WOW CHE VUOTO, QUESTO UTENTE MI STA SOLO OCCUPANDO SPAZIO INUTILE SUL DB ;-;</h1>";
-            }
-        }
-
 
     </script>
 </body>

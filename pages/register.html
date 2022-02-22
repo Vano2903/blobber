@@ -102,6 +102,7 @@
             function checkConfirmPassword() {
                 var password = document.getElementById("password").value;
                 var confirmPassword = document.getElementById("confirmPassword").value;
+                console.log(password + " = " + confirmPassword)
                 if (password != confirmPassword) {
                     document.getElementById("error").style.display = "block";
                     document.getElementById("error").innerHTML = "Passwords do not match";
@@ -116,7 +117,7 @@
                 var password = document.getElementById("password").value;
                 if (password.length < 4) {
                     document.getElementById("error").style.display = "block";
-                    document.getElementById("error").innerHTML = "Password can't be empty";
+                    document.getElementById("error").innerHTML = "Password must be at least 4 characters";
                     return false;
                 }
                 document.getElementById("error").style.display = "none";
@@ -125,10 +126,9 @@
             }
 
             //check if the username is less then 4
-            //check if the username contains / or \
             function checkUsername() {
-                var username = document.getElementById("name").value;
-                if (username.length < 4) {
+                var username = document.getElementById("username").value;
+                if (username == "") {
                     document.getElementById("error").style.display = "block";
                     document.getElementById("error").innerHTML = "Username can't be empty";
                     return false;
@@ -140,10 +140,10 @@
 
             async function register() {
                 var username = document.getElementById("username").value;
-                // if (!checkUsername()) return;
+                if (!checkUsername()) return;
 
                 var password = document.getElementById("password").value;
-                // if (!checkConfirmPassword()) return;
+                if (!checkConfirmPassword()) return;
 
                 var response = await fetch("/register", {
                     method: "POST",

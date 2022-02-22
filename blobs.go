@@ -25,7 +25,9 @@ func (b *Blob) Info(requesterID int) {
 
 	var count int
 	db.QueryRow("SELECT COUNT(*) FROM likes WHERE ID_blob = ? AND ID_user = ?", b.ID, requesterID).Scan(&count)
+	fmt.Println("count:", count)
 	if count > 0 {
+		fmt.Println("liked")
 		b.Liked = true
 	}
 

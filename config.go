@@ -9,7 +9,7 @@ import (
 )
 
 type Config struct {
-	Secret string `yaml: "secret"`
+	Secret string `yaml:"secret"`
 }
 
 var conf Config

@@ -11,9 +11,9 @@ WORKDIR /go/src/blobber
 COPY go.mod go.sum /go/src/blobber/
 RUN go mod download
 
-COPY *.go /go/src/blobber/
-COPY ./pages/ /go/src/blobber/pages/
 COPY ./blob.png /go/src/blobber/ 
+COPY ./pages/ /go/src/blobber/pages/
+COPY *.go /go/src/blobber/
 RUN go build -o blobber
 
 CMD ./blobber

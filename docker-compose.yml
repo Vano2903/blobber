@@ -28,6 +28,7 @@ services:
         MYSQL_ROOT_PASSWORD: root
       ports:
         - "3306"
+      command: ['mysqld', '--character-set-server=utf8mb4', '--collation-server=utf8mb4_unicode_ci']
       # expose:
       #   - 3306
       volumes:
@@ -46,7 +47,7 @@ services:
         - go
       # Connects the port 80 of the nginx container to localhost:80 or localhost
       ports: 
-        - "80:80"
+        - "8080:80"
       networks: 
         - "blobber"
 volumes:

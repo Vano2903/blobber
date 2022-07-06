@@ -32,10 +32,11 @@ func JWTAuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
 		//check if the cookie "JWT" exists
 		_, err := r.Cookie("JWT")
 		if err != nil {
-			//if err is not nil it means that the cookie was not found so we return a 401 unauthorized
+			// OLD: if err is not nil it means that the cookie was not found so we return a 401 unauthorized
 			// returnError(w, http.StatusUnauthorized, "missing 'JWT' cookie")
-			//if err is not nil it means that the cookie was not found so we are redirecting the user to the register page
-			http.Redirect(w, r, "/register", http.StatusFound)
+
+			//if err is not nil then redirect to login page
+			http.Redirect(w, r, "/login", http.StatusSeeOther)
 			return
 		} else {
 			next(w, r)
@@ -153,12 +154,20 @@ func homePage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	user, err := QueryUserByID(jwtContent.UserID, 0)
+	if err != nil {
+		returnError(w, http.StatusBadRequest, "User not found, error: "+err.Error())
+		return
+	}
+
 	data := struct {
 		Username string
 		ID       int
+		Bio      string
 	}{
 		Username: jwtContent.Username,
 		ID:       jwtContent.UserID,
+		Bio:      user.Description,
 	}
 
 	tmpl, err := template.ParseFiles("pages/home.html")
@@ -208,15 +217,29 @@ func userPageHandler(w http.ResponseWriter, r *http.Request) {
 	if user.Follows {
 		followsButton = "Un-Follow"
 	}
+	if user.ID == jwtContent.UserID {
+		followsButton = "remove"
+	}
+	blobs, _ := user.GetBlobs(false, jwtContent.UserID)
 
 	data := struct {
 		Username      string
 		ID            int
 		FollowsButton string
+		Likes         int
+		Blobs         int
+		Followers     int
+		Followings    int
+		Description   string
 	}{
 		Username:      user.Username,
 		ID:            user.ID,
 		FollowsButton: followsButton,
+		Likes:         user.LikesCount,
+		Blobs:         len(blobs),
+		Followers:     user.FollowersCount,
+		Followings:    user.FollowingCount,
+		Description:   user.Description,
 	}
 
 	tmpl, err := template.ParseFiles("pages/user.html")
@@ -249,7 +272,7 @@ func getUserBlobsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	blobs, err := user.GetBlobs(true)
+	blobs, err := user.GetBlobs(true, jwtContent.UserID)
 	if err != nil {
 		returnError(w, http.StatusInternalServerError, "Internal server error: "+err.Error())
 		return
@@ -359,7 +382,7 @@ func searchUsersHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	search := mux.Vars(r)["query"]
-
+	fmt.Println(search)
 	users, err := QueryUsersBySubstring(search, jwtContent.UserID)
 	if err != nil {
 		returnError(w, http.StatusNotFound, "no users found")

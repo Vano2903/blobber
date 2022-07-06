@@ -50,7 +50,7 @@ func (u User) HasLiked(id int) (bool, error) {
 	return count > 0, nil
 }
 
-func (u User) GetBlobs(sorted bool) ([]Blob, error) {
+func (u User) GetBlobs(sorted bool, requesterID int) ([]Blob, error) {
 	db, err := connectToDB()
 	if err != nil {
 		return []Blob{}, err
@@ -70,7 +70,7 @@ func (u User) GetBlobs(sorted bool) ([]Blob, error) {
 		if err != nil {
 			return []Blob{}, err
 		}
-		blob.Info(u.ID)
+		blob.Info(requesterID)
 		blobs = append(blobs, blob)
 	}
 

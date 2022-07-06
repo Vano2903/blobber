@@ -44,8 +44,8 @@
         </div>
 
         <div id="caption" style="display:none;" class="col-6 form-group">
-            <label for="bioContent">Messaggio del blob</label>
-            <textarea class="form-control" id="bioContent" rows="3"></textarea>
+            <label for="bioContent">Bio</label>
+            <textarea class="form-control" id="bioContent" rows="3">{{.Bio}}</textarea>
             <br>
             <button type="button" class="btn btn-primary" onclick="changeCaption()">Applica</button>
         </div>
@@ -101,6 +101,7 @@
             let overview = resp.overview;
             if (resp.overview !== null) {
                 let cardContainer = document.getElementById("feed");
+                cardContainer.innerHTML = "";
                 overview.forEach(single => {
                     const card = document.createElement('div');
                     card.className = 'card';

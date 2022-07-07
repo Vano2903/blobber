@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -99,6 +100,11 @@ func (b *Blob) Modify(content string) error {
 }
 
 func AddBlob(userID int, content string) error {
+	content = strings.Trim(content, " ")
+	if content == "" {
+		return fmt.Errorf("content can't be empty")
+	}
+
 	db, err := connectToDB()
 	if err != nil {
 		return err

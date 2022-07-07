@@ -11,7 +11,12 @@ services:
       links:
         - db
       environment:
-        SECRET: ciao
+        secret: ciao
+        DATABASE_USER: root
+        DATABASE_PASSWORD: root
+        DATABASE_HOST: db
+        DATABASE_PORT: 3306
+        DATABASE_NAME: blobber
       ports:
         - "8080"
       networks:

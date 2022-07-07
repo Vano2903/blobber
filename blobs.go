@@ -94,6 +94,10 @@ func (b *Blob) Modify(content string) error {
 		return fmt.Errorf("bad request: content can't be empty")
 	}
 
+	if b.Content == content {
+		return fmt.Errorf("bad request: nothing to change")
+	}
+
 	db, err := connectToDB()
 	if err != nil {
 		return fmt.Errorf("internal server error: %v", err)

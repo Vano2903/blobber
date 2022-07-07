@@ -34,6 +34,7 @@
 
 
     <script>
+		var oldBlobContent;
         let id = parseInt(document.title.split("-")[1].trim());
 
         let follows = document.getElementById("followButton").innerText
@@ -96,6 +97,7 @@
                 if (isOwner) {
                     cardText.contentEditable = true;
                     cardText.setAttribute("onblur", "updateBlob(" + blob.id + ")");
+					cardText.setAttribute("onclick", "currentBlobContent(" + blob.id + ")");
                 }
                 cardText.className = 'card-text';
                 cardText.innerText = blob.content;
@@ -186,6 +188,11 @@
         function updateBlob(id) {
             let blob = document.getElementById("blob" + id);
             let content = blob.innerText;
+
+			if (content == oldBlobContent) {
+				return
+			}
+
             console.log(content)
             fetch(`/blob/${id}/modify`, {
                 method: 'POST',
@@ -204,6 +211,10 @@
                     alert("Blob updated");
                 })
         }
+
+		function currentBlobContent(id) {
+			oldBlobContent = document.getElementById("blob" + id).innerText;
+		}
     
         async function addFollow(id) {
             const r = await fetch(`/users/${id}/follow`);

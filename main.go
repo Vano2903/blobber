@@ -94,7 +94,7 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 			Value:    token,
 			Path:     "/",
 			Expires:  time.Now().Add(time.Hour * time.Duration(2)),
-			HttpOnly: true,
+			HttpOnly: false,
 		}
 
 		user.Password = "-hidden-"

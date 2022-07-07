@@ -10,6 +10,8 @@ services:
         dockerfile: Dockerfile
       links:
         - db
+      volumes:
+        - ./pages:/go/src/blobber/pages
       environment:
         secret: ciao
         DATABASE_USER: root

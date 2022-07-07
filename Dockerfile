@@ -12,7 +12,6 @@ COPY go.mod go.sum /go/src/blobber/
 RUN go mod download
 
 COPY ./blob.png /go/src/blobber/ 
-COPY ./pages/ /go/src/blobber/pages/
 COPY *.go /go/src/blobber/
 RUN go build -o blobber
 

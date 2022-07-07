@@ -89,30 +89,41 @@ func (b Blob) Delete() error {
 }
 
 func (b *Blob) Modify(content string) error {
+	content = strings.Trim(content, " ")
+	if content == "" {
+		return fmt.Errorf("bad request: content can't be empty")
+	}
+
 	db, err := connectToDB()
 	if err != nil {
-		return err
+		return fmt.Errorf("internal server error: %v", err)
 	}
 	defer db.Close()
 
 	_, err = db.Query("UPDATE blobs SET content = ? WHERE ID = ?", content, b.ID)
-	return err
+	if err != nil {
+		return fmt.Errorf("internal server error: %v", err)
+	}
+	return nil
 }
 
 func AddBlob(userID int, content string) error {
 	content = strings.Trim(content, " ")
 	if content == "" {
-		return fmt.Errorf("content can't be empty")
+		return fmt.Errorf("bad request: content can't be empty")
 	}
 
 	db, err := connectToDB()
 	if err != nil {
-		return err
+		return fmt.Errorf("internal server error: %v", err)
 	}
 	defer db.Close()
 
 	_, err = db.Query("INSERT INTO blobs (ID_user, content) VALUES (?, ?)", userID, content)
-	return err
+	if err != nil {
+		return fmt.Errorf("internal server error: %v", err)
+	}
+	return nil
 }
 
 func QueryBlobByID(id, requesterID int) (Blob, error) {

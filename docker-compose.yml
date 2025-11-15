@@ -14,6 +14,16 @@ services:
       - db
     volumes:
       - ./pages:/go/src/blobber/pages
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.blobber-prod.rule=Host(`blobber.cargoway.cloud`)"
+      - "traefik.http.routers.blobber-prod.entrypoints=https"
+      - "traefik.http.routers.blobber-prod.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.blobber-prod.tls=true"
+      - "traefik.http.services.blobber-prod.loadbalancer.server.port=8080"
+    networks:
+      - traefik
+      - blobber
     environment:
       secret: ciao
       DATABASE_USER: root
@@ -23,10 +33,7 @@ services:
       DATABASE_NAME: blobber
     ports:
       - "8080"
-    networks:
-      - "blobber"
-    deploy:
-      replicas: 3
+
   db:
     image: mariadb:10.2
     restart: always
@@ -50,22 +57,25 @@ services:
     networks:
       - "blobber"
   # nginx container
-  nginx:
-    # specifies the latest nginx image
-    image: nginx:latest
-    # Connects the conf file of the container to the conf file in our folder
-    volumes:
-      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-    # It will start up the nginx only when all api containers have started
-    depends_on:
-      - go
-    # Connects the port 80 of the nginx container to localhost:80 or localhost
-    ports:
-      - "8080:80"
-    networks:
-      - "blobber"
+  # nginx:
+  #   # specifies the latest nginx image
+  #   image: nginx:latest
+  #   # Connects the conf file of the container to the conf file in our folder
+  #   volumes:
+  #     - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+  #   # It will start up the nginx only when all api containers have started
+  #   depends_on:
+  #     - go
+  #   # Connects the port 80 of the nginx container to localhost:80 or localhost
+  #   ports:
+  #     - "8080:80"
+  #   networks:
+  #     - "blobber"
 volumes:
   mariadb:
 
 networks:
   blobber:
+  traefik:
+    external: true
+    name: traefik-servicenet

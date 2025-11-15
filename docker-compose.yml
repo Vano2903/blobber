@@ -1,62 +1,69 @@
 version: "3.9"
 
 services:
-    go:
-      # container_name: go
-      image: go
-      restart: always
-      build:
-        context: .
-        dockerfile: Dockerfile
-      links:
-        - db
-      volumes:
-        - ./pages:/go/src/blobber/pages
-      environment:
-        secret: ciao
-        DATABASE_USER: root
-        DATABASE_PASSWORD: root
-        DATABASE_HOST: db
-        DATABASE_PORT: 3306
-        DATABASE_NAME: blobber
-      ports:
-        - "8080"
-      networks:
-        - "blobber"
-      deploy:
-        replicas: 3
-    db:
-      image: mariadb:10.2
-      restart: always
-      environment:
-        MYSQL_DATABASE: blobber
-        MYSQL_USER: vano
-        MYSQL_PASSWORD: vano
-        MYSQL_ROOT_PASSWORD: root
-      ports:
-        - "3306"
-      command: ['mysqld', '--character-set-server=utf8mb4', '--collation-server=utf8mb4_unicode_ci']
-      # expose:
-      #   - 3306
-      volumes:
-        - ./db-dump:/var/lib/mysql
-      networks:
-        - "blobber"
-    # nginx container
-    nginx:
-      # specifies the latest nginx image
-      image: nginx:latest
-      # Connects the conf file of the container to the conf file in our folder
-      volumes:
-          - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
-      # It will start up the nginx only when all api containers have started
-      depends_on: 
-        - go
-      # Connects the port 80 of the nginx container to localhost:80 or localhost
-      ports: 
-        - "8080:80"
-      networks: 
-        - "blobber"
+  go:
+    # container_name: go
+    image: go
+    restart: always
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      - db
+    links:
+      - db
+    volumes:
+      - ./pages:/go/src/blobber/pages
+    environment:
+      secret: ciao
+      DATABASE_USER: root
+      DATABASE_PASSWORD: root
+      DATABASE_HOST: db
+      DATABASE_PORT: 3306
+      DATABASE_NAME: blobber
+    ports:
+      - "8080"
+    networks:
+      - "blobber"
+    deploy:
+      replicas: 3
+  db:
+    image: mariadb:10.2
+    restart: always
+    environment:
+      MYSQL_DATABASE: blobber
+      MYSQL_USER: vano
+      MYSQL_PASSWORD: vano
+      MYSQL_ROOT_PASSWORD: root
+    ports:
+      - "3306"
+    command:
+      [
+        "mysqld",
+        "--character-set-server=utf8mb4",
+        "--collation-server=utf8mb4_unicode_ci",
+      ]
+    # expose:
+    #   - 3306
+    volumes:
+      - ./db-dump:/var/lib/mysql
+    networks:
+      - "blobber"
+  # nginx container
+  nginx:
+    # specifies the latest nginx image
+    image: nginx:latest
+    # Connects the conf file of the container to the conf file in our folder
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    # It will start up the nginx only when all api containers have started
+    depends_on:
+      - go
+    # Connects the port 80 of the nginx container to localhost:80 or localhost
+    ports:
+      - "8080:80"
+    networks:
+      - "blobber"
 volumes:
   mariadb:
 
